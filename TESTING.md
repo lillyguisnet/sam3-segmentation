@@ -2,7 +2,8 @@
 
 ## Checks performed locally — 23 October 2026
 
-- **106 CPU tests passed** on Linux with Python **3.12.12 and 3.13.13**.
+- The original **106 CPU tests passed** on Linux with Python **3.12.12 and 3.13.13**.
+  Five additional non-corn configuration checks bring the current suite to **111**.
 - Lint and Python formatting checks passed.
 - The complete copied skill ran its demo outside the repository; the installer
   preserved locks/scripts/licence and refused overwriting an existing skill.
@@ -88,6 +89,17 @@ This starts a loopback-only test server and a dedicated browser/profile. Pass
 `--browser-executable` for an appropriate isolated browser on systems such as
 NixOS. Do not take over somebody's shared browser or debugging connection.
 Playwright/browser downloads are optional, not base runtime dependencies.
+
+## Non-corn qualitative trials
+
+The same implementation was also run on a dog, glass jars, pinned insects,
+overlapping mushroom caps and cattle, using explicit image-specific settings.
+All exported masks passed native/RLE/PNG checks, but semantic false positives,
+parent/part duplicates and fine-boundary defects remained. Independent model
+audits are unverified judgments, not ground truth. The [trial report](docs/cross-domain-trials.md)
+records both useful masks and failures; the [scalar evidence](tests/evidence/cross-domain-trials.json)
+contains no input photos or private masks. The five new tests only validate
+those configs and confirm they replace corn-specific semantic/scale fields.
 
 ## What these results do not establish
 

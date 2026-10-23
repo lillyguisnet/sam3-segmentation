@@ -1,0 +1,34 @@
+{
+  "budget": {
+    "max_candidates": 60000,
+    "max_grid_points": 12000,
+    "max_jobs": 180
+  },
+  "label": "insect",
+  "passes": [
+    { "grid_step": null, "name": "whole", "overlap": 0, "size": null },
+    { "grid_step": 32, "name": "coarse", "overlap": 192, "size": 512 },
+    { "grid_step": null, "name": "fine", "overlap": 128, "size": 320 }
+  ],
+  "phrases": ["insect", "butterfly", "beetle"],
+  "refinement": {
+    "agreement_min": 0.5,
+    "area_ratio_max": 1.65,
+    "area_ratio_min": 0.5,
+    "crop_size": 512,
+    "quality_min": 0.7,
+    "stability_min": 0.82,
+    "supported_agreement_min": 0.68
+  },
+  "seed": 0,
+  "selection": {
+    "dedupe_iou": 0.52,
+    "exclude_internal_crop_edges": true,
+    "max_area": 60000,
+    "min_area": 10,
+    "point_quality_min": null,
+    "point_stability_min": 0.9,
+    "text_score_min": 0.2
+  },
+  "whole_objects": []
+}

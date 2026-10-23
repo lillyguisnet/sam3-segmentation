@@ -101,6 +101,19 @@ the historical count: different images, crop grids and settings change outputs.
 The example area limits assume small corn-image pixels; inspect before reusing
 those settings for other images or categories.
 
+## Does it work beyond corn?
+
+The model and mask tools are not corn-specific, but the original default config
+still is. Use the complete [non-corn example profiles](skills/detailed-segmentation/configs/non-corn/)
+rather than changing only the object name.
+
+We ran five qualitative trials on a dog, jars, insects, mushrooms and cattle.
+Useful masks appeared in every case, but so did background false positives,
+part/whole duplicates and missed fine boundaries. More crops were **not always
+better**. These are review proposals, not a general automatic annotation result.
+See the [full trial report](docs/cross-domain-trials.md), including failures and
+a diagnostic score sweep. No private photos or mask sets are in the repository.
+
 ## The approach, and its limits
 
 1. Inventory visible objects and nesting **before** inspecting predictions.
@@ -130,6 +143,7 @@ masks are included. Pixel-perfect file round trips are not pixel-perfect semanti
 - [Configuration, budgets and run files](skills/detailed-segmentation/references/configuration.md)
 - [Independent review protocol and JSON](skills/detailed-segmentation/references/review.md)
 - [Historical mistakes and lessons](skills/detailed-segmentation/references/lessons.md)
+- [Five non-corn trials, with failures](docs/cross-domain-trials.md)
 - [Testing and reproducibility status](TESTING.md)
 
 ## Development

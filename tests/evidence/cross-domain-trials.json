@@ -1,0 +1,531 @@
+{
+  "schema": "cross-domain-trials/1",
+  "source_commit": "e1fcd71",
+  "purpose": "Qualitative investigation, not an accuracy benchmark",
+  "cases": [
+    {
+      "name": "dog",
+      "width": 800,
+      "height": 534,
+      "baseline": {
+        "dog": 2
+      },
+      "selected": {
+        "dog": 2
+      },
+      "final": {
+        "dog": 2
+      },
+      "boundary_updates": 1,
+      "final_source_kinds": {
+        "text": 2
+      },
+      "validation": {
+        "checks": [
+          "canonical image checksum",
+          "native dimensions",
+          "nonempty masks",
+          "unique IDs",
+          "pixel-tight boxes including last row/column",
+          "mask area",
+          "RLE roundtrip",
+          "all proposals"
+        ],
+        "masks": 2,
+        "native_size": [800, 534]
+      },
+      "score_probe": {
+        "multiscale_proposals": 1,
+        "note": "Counts are hypotheses, not accuracy. Unchanged raw predictions and image. No automatic acceptance.",
+        "point_proposals": 0,
+        "text_proposals": 1,
+        "text_score_cutoff": 0.5,
+        "whole_image_proposals": 1
+      },
+      "reviewer_usable_without_further_review": false,
+      "reviewer_id_checks": {
+        "invalid": [],
+        "format_only_normalizations": []
+      },
+      "source_policy": "Image-specific settings, unchanged SAM3 weights, native source pixels. Private input photos/masks are not committed."
+    },
+    {
+      "name": "jars",
+      "width": 1015,
+      "height": 457,
+      "baseline": {
+        "jar": 14
+      },
+      "selected": {
+        "jar": 22
+      },
+      "final": {
+        "jar": 22
+      },
+      "boundary_updates": 10,
+      "final_source_kinds": {
+        "text": 22
+      },
+      "validation": {
+        "checks": [
+          "canonical image checksum",
+          "native dimensions",
+          "nonempty masks",
+          "unique IDs",
+          "pixel-tight boxes including last row/column",
+          "mask area",
+          "RLE roundtrip",
+          "all proposals"
+        ],
+        "masks": 22,
+        "native_size": [1015, 457]
+      },
+      "score_probe": {
+        "multiscale_proposals": 14,
+        "note": "Counts are hypotheses, not accuracy. Unchanged raw predictions and image. No automatic acceptance.",
+        "point_proposals": 0,
+        "text_proposals": 14,
+        "text_score_cutoff": 0.5,
+        "whole_image_proposals": 13
+      },
+      "reviewer_usable_without_further_review": false,
+      "reviewer_id_checks": {
+        "invalid": [],
+        "format_only_normalizations": []
+      },
+      "source_policy": "Image-specific settings, unchanged SAM3 weights, native source pixels. Private input photos/masks are not committed."
+    },
+    {
+      "name": "insects",
+      "width": 743,
+      "height": 1319,
+      "baseline": {
+        "insect": 69
+      },
+      "selected": {
+        "insect": 119
+      },
+      "final": {
+        "insect": 117
+      },
+      "boundary_updates": 65,
+      "final_source_kinds": {
+        "point": 37,
+        "text": 80
+      },
+      "validation": {
+        "checks": [
+          "canonical image checksum",
+          "native dimensions",
+          "nonempty masks",
+          "unique IDs",
+          "pixel-tight boxes including last row/column",
+          "mask area",
+          "RLE roundtrip",
+          "all proposals"
+        ],
+        "masks": 117,
+        "native_size": [743, 1319]
+      },
+      "score_probe": {
+        "multiscale_proposals": 109,
+        "note": "Counts are hypotheses, not accuracy. Unchanged raw predictions and image. No automatic acceptance.",
+        "point_proposals": 42,
+        "text_proposals": 67,
+        "text_score_cutoff": 0.5,
+        "whole_image_proposals": 55
+      },
+      "reviewer_usable_without_further_review": false,
+      "reviewer_id_checks": {
+        "invalid": [],
+        "format_only_normalizations": []
+      },
+      "source_policy": "Image-specific settings, unchanged SAM3 weights, native source pixels. Private input photos/masks are not committed."
+    },
+    {
+      "name": "mushrooms",
+      "width": 1015,
+      "height": 1015,
+      "baseline": {
+        "mushroom cap": 28,
+        "mushroom cluster": 1
+      },
+      "selected": {
+        "mushroom cap": 87,
+        "mushroom cluster": 1
+      },
+      "final": {
+        "mushroom cap": 87,
+        "mushroom cluster": 1
+      },
+      "boundary_updates": 67,
+      "final_source_kinds": {
+        "point": 45,
+        "text": 43
+      },
+      "validation": {
+        "checks": [
+          "canonical image checksum",
+          "native dimensions",
+          "nonempty masks",
+          "unique IDs",
+          "pixel-tight boxes including last row/column",
+          "mask area",
+          "RLE roundtrip",
+          "all proposals"
+        ],
+        "masks": 88,
+        "native_size": [1015, 1015]
+      },
+      "score_probe": {
+        "multiscale_proposals": 78,
+        "note": "Counts are hypotheses, not accuracy. Unchanged raw predictions and image. No automatic acceptance.",
+        "point_proposals": 52,
+        "text_proposals": 26,
+        "text_score_cutoff": 0.5,
+        "whole_image_proposals": 24
+      },
+      "reviewer_usable_without_further_review": false,
+      "reviewer_id_checks": {
+        "invalid": [],
+        "format_only_normalizations": [
+          {
+            "reported": "mask-000001",
+            "resolved": "mask-00001"
+          },
+          {
+            "reported": "mask-000002",
+            "resolved": "mask-00002"
+          },
+          {
+            "reported": "mask-000003",
+            "resolved": "mask-00003"
+          },
+          {
+            "reported": "mask-000004",
+            "resolved": "mask-00004"
+          },
+          {
+            "reported": "mask-000005",
+            "resolved": "mask-00005"
+          },
+          {
+            "reported": "mask-000008",
+            "resolved": "mask-00008"
+          },
+          {
+            "reported": "mask-000010",
+            "resolved": "mask-00010"
+          },
+          {
+            "reported": "mask-000011",
+            "resolved": "mask-00011"
+          },
+          {
+            "reported": "mask-000013",
+            "resolved": "mask-00013"
+          },
+          {
+            "reported": "mask-000017",
+            "resolved": "mask-00017"
+          },
+          {
+            "reported": "mask-000021",
+            "resolved": "mask-00021"
+          },
+          {
+            "reported": "mask-000026",
+            "resolved": "mask-00026"
+          },
+          {
+            "reported": "mask-000055",
+            "resolved": "mask-00055"
+          },
+          {
+            "reported": "mask-000057",
+            "resolved": "mask-00057"
+          },
+          {
+            "reported": "mask-000059",
+            "resolved": "mask-00059"
+          },
+          {
+            "reported": "mask-000060",
+            "resolved": "mask-00060"
+          },
+          {
+            "reported": "mask-000061",
+            "resolved": "mask-00061"
+          },
+          {
+            "reported": "mask-000062",
+            "resolved": "mask-00062"
+          },
+          {
+            "reported": "mask-000063",
+            "resolved": "mask-00063"
+          },
+          {
+            "reported": "mask-000065",
+            "resolved": "mask-00065"
+          },
+          {
+            "reported": "mask-000066",
+            "resolved": "mask-00066"
+          },
+          {
+            "reported": "mask-000067",
+            "resolved": "mask-00067"
+          },
+          {
+            "reported": "mask-000068",
+            "resolved": "mask-00068"
+          },
+          {
+            "reported": "mask-000069",
+            "resolved": "mask-00069"
+          },
+          {
+            "reported": "mask-000070",
+            "resolved": "mask-00070"
+          },
+          {
+            "reported": "mask-000073",
+            "resolved": "mask-00073"
+          },
+          {
+            "reported": "mask-000074",
+            "resolved": "mask-00074"
+          },
+          {
+            "reported": "mask-000075",
+            "resolved": "mask-00075"
+          },
+          {
+            "reported": "mask-000077",
+            "resolved": "mask-00077"
+          },
+          {
+            "reported": "mask-000078",
+            "resolved": "mask-00078"
+          },
+          {
+            "reported": "mask-000079",
+            "resolved": "mask-00079"
+          },
+          {
+            "reported": "mask-000080",
+            "resolved": "mask-00080"
+          },
+          {
+            "reported": "mask-000081",
+            "resolved": "mask-00081"
+          },
+          {
+            "reported": "mask-000082",
+            "resolved": "mask-00082"
+          },
+          {
+            "reported": "mask-000083",
+            "resolved": "mask-00083"
+          },
+          {
+            "reported": "mask-000084",
+            "resolved": "mask-00084"
+          },
+          {
+            "reported": "mask-000085",
+            "resolved": "mask-00085"
+          },
+          {
+            "reported": "mask-000086",
+            "resolved": "mask-00086"
+          },
+          {
+            "reported": "mask-000087",
+            "resolved": "mask-00087"
+          },
+          {
+            "reported": "mask-000006",
+            "resolved": "mask-00006"
+          },
+          {
+            "reported": "mask-000009",
+            "resolved": "mask-00009"
+          },
+          {
+            "reported": "mask-000012",
+            "resolved": "mask-00012"
+          },
+          {
+            "reported": "mask-000015",
+            "resolved": "mask-00015"
+          },
+          {
+            "reported": "mask-000016",
+            "resolved": "mask-00016"
+          },
+          {
+            "reported": "mask-000020",
+            "resolved": "mask-00020"
+          },
+          {
+            "reported": "mask-000024",
+            "resolved": "mask-00024"
+          },
+          {
+            "reported": "mask-000029",
+            "resolved": "mask-00029"
+          },
+          {
+            "reported": "mask-000034",
+            "resolved": "mask-00034"
+          },
+          {
+            "reported": "mask-000036",
+            "resolved": "mask-00036"
+          },
+          {
+            "reported": "mask-000041",
+            "resolved": "mask-00041"
+          },
+          {
+            "reported": "mask-000046",
+            "resolved": "mask-00046"
+          },
+          {
+            "reported": "mask-000047",
+            "resolved": "mask-00047"
+          },
+          {
+            "reported": "mask-000052",
+            "resolved": "mask-00052"
+          },
+          {
+            "reported": "mask-000058",
+            "resolved": "mask-00058"
+          },
+          {
+            "reported": "mask-000007",
+            "resolved": "mask-00007"
+          },
+          {
+            "reported": "mask-000014",
+            "resolved": "mask-00014"
+          },
+          {
+            "reported": "mask-000022",
+            "resolved": "mask-00022"
+          },
+          {
+            "reported": "mask-000023",
+            "resolved": "mask-00023"
+          },
+          {
+            "reported": "mask-000027",
+            "resolved": "mask-00027"
+          },
+          {
+            "reported": "mask-000032",
+            "resolved": "mask-00032"
+          },
+          {
+            "reported": "mask-000035",
+            "resolved": "mask-00035"
+          },
+          {
+            "reported": "mask-000040",
+            "resolved": "mask-00040"
+          },
+          {
+            "reported": "mask-000050",
+            "resolved": "mask-00050"
+          },
+          {
+            "reported": "mask-000053",
+            "resolved": "mask-00053"
+          },
+          {
+            "reported": "mask-000054",
+            "resolved": "mask-00054"
+          },
+          {
+            "reported": "mask-000064",
+            "resolved": "mask-00064"
+          },
+          {
+            "reported": "mask-000088",
+            "resolved": "mask-00088"
+          }
+        ]
+      },
+      "source_policy": "Image-specific settings, unchanged SAM3 weights, native source pixels. Private input photos/masks are not committed."
+    },
+    {
+      "name": "cows",
+      "width": 1439,
+      "height": 810,
+      "baseline": {
+        "cow": 11
+      },
+      "selected": {
+        "cow": 24
+      },
+      "final": {
+        "cow": 24
+      },
+      "boundary_updates": 8,
+      "final_source_kinds": {
+        "text": 24
+      },
+      "validation": {
+        "checks": [
+          "canonical image checksum",
+          "native dimensions",
+          "nonempty masks",
+          "unique IDs",
+          "pixel-tight boxes including last row/column",
+          "mask area",
+          "RLE roundtrip",
+          "all proposals"
+        ],
+        "masks": 24,
+        "native_size": [1439, 810]
+      },
+      "score_probe": {
+        "multiscale_proposals": 11,
+        "note": "Counts are hypotheses, not accuracy. Unchanged raw predictions and image. No automatic acceptance.",
+        "point_proposals": 0,
+        "text_proposals": 11,
+        "text_score_cutoff": 0.5,
+        "whole_image_proposals": 9
+      },
+      "reviewer_usable_without_further_review": false,
+      "reviewer_id_checks": {
+        "invalid": [],
+        "format_only_normalizations": []
+      },
+      "source_policy": "Image-specific settings, unchanged SAM3 weights, native source pixels. Private input photos/masks are not committed."
+    }
+  ],
+  "conclusions": [
+    "The tools execute across different categories with explicit per-image semantic and size settings.",
+    "Automatic proposals contain semantic false positives and parent/part duplicates.",
+    "More masks and stable refinements do not prove better annotation.",
+    "Independent model inventories/audits are unverified, not reference annotations.",
+    "No private source photos, masks, credentials or hardware IDs are committed."
+  ],
+  "recorded_at": "2026-10-23T16:23:21.795721+00:00",
+  "model_checkpoint_sha256": "9999e2341ceef5e136daa386eecb55cb414446a00ac2b55eb2dfd2f7c3cf8c9e",
+  "implementation_hashes": {
+    "core.py": "f0cb47b754f9e8cfc1fb3949c0097f201dd40e99de34d8db431f7ac80b2bd099",
+    "sam3_backend.py": "6014189d53abe7cf0760cd7b5ce32b13185da6ac09c4695a87c1a5db94d99405",
+    "segment.py": "b55943c0b8e9d6e6e19c12cc99556465cc632a2f456d87628f6c1d5019a857fc"
+  },
+  "base_validation": {
+    "passed": 111,
+    "python": ["3.12.12", "3.13.13"],
+    "meaning": "Implementation/configuration checks, not annotation accuracy"
+  },
+  "execution_scope": "Automatic proposal/selection/boundary-update passes followed by visual inspection and unverified independent model audits; not a completed accepted annotation workflow."
+}

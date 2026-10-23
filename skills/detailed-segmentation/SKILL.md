@@ -87,6 +87,13 @@ parent objects, likely small parts, difficult shadows and possible occlusions.
 Write the scope and unresolved policy in the run notes. Inventory guesses are
 not ground truth.
 
+For another subject, read [the five non-corn trials](references/cross-domain-trials.md)
+and use the appropriate **example** under `configs/non-corn/` as a starting point.
+Those trials produced useful silhouettes but also background masks and parent/part
+duplicates; they are not a general-accuracy guarantee. Explicitly replace labels,
+phrases, parent queries, native area bounds, crop scales and refinement scale.
+Renaming `kernel` alone leaves other corn settings inherited.
+
 Copy `configs/corn-starting-point.json` only if the image scale is comparable to
 the original small corn photo. Otherwise make a config for this image using
 [the config guide](references/configuration.md). Object-size limits and thresholds
@@ -158,6 +165,12 @@ image. Inspect each coordinate-labelled sheet in `review/`, comparing original
 pixels to contours. Check missing/merged objects, specular holes, disconnected
 pieces, background leakage, edge slivers and identity across occluders. Do not
 join hidden fragments merely to force a single object count.
+
+Inspect category and physical identity **before** trusting boundary refinement.
+A lamp-shaped point mask is not an insect; a jar lid and jar body are not two jars.
+The current automatic tools flag point semantics but do not implement a complete
+category gate or whole/part identity resolver. If those errors remain, stop with
+an explicit review draft rather than claiming a cleaner boundary fixed them.
 
 Read [review protocol](references/review.md). Use an independent vision-capable
 agent if authorized, and separate source-image inventory from proposal audit to

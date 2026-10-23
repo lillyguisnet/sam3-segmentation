@@ -1,4 +1,5 @@
 import copy
+import json
 import re
 import subprocess
 import sys
@@ -119,6 +120,20 @@ def test_config_rejects_invalid_values(section, key, value):
     config[section][key] = value
     with pytest.raises(ValueError):
         validate_config(config)
+
+
+@pytest.mark.parametrize("name", ["dog", "jars", "insects", "mushrooms", "cows"])
+def test_non_corn_profiles_override_task_specific_defaults(name):
+    path = SKILL / "configs" / "non-corn" / f"{name}.json"
+    raw = json.loads(path.read_text())
+    config = load_config(path)
+    assert {"label", "phrases", "whole_objects", "passes", "selection", "refinement"} <= raw.keys()
+    assert {"min_area", "max_area"} <= raw["selection"].keys()
+    assert "crop_size" in raw["refinement"]
+    assert "corn" not in json.dumps(config).lower()
+    assert config["label"] != "kernel"
+    assert config["selection"]["max_area"] != 650
+    assert config["refinement"]["crop_size"] > 120
 
 
 def test_example_configs_are_valid():
