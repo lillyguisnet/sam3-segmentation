@@ -46,6 +46,12 @@ uv run --locked --project "$S" python "$S/scripts/segment.py" doctor
 installed copy includes scripts, references, locks and the model environment.
 Shell variables from one terminal/tool call may not persist in another.
 
+`uv sync` creates `.venv` folders inside the skill folder. The scripts do not
+write anything else there (no `__pycache__`). If the skill folder is shared or
+read-only, put the environments elsewhere by setting `UV_PROJECT_ENVIRONMENT`
+to a writable folder on every `uv sync` and `uv run` call. Use a different
+folder for the base and the model environment.
+
 Optional base-only fallback without `uv` (not the locked inference path):
 
 ```sh

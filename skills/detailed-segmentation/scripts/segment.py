@@ -3,6 +3,11 @@
 
 from __future__ import annotations
 
+import sys
+
+# Do not write __pycache__ into the (possibly shared or read-only) skill folder.
+sys.dont_write_bytecode = True
+
 import argparse
 import copy
 import importlib.metadata
@@ -43,6 +48,7 @@ from core import (
     mask_rows,
     read_json,
     record,
+    require_keys,
     tiles,
     validate_config,
     validate_review,
@@ -577,6 +583,135 @@ def assign_ids(objects):
     return objects
 
 
+DECISIONS_SCHEMA = "detailed-segmentation-decisions/1"
+DECISION_ACTIONS = {"exclude", "uncertain", "keep"}
+
+
+def decision_log(run):
+    path = run / "decisions.json"
+    return read_json(path)["entries"] if path.exists() else []
+
+
+def latest_decisions(run):
+    """The newest decision per candidate wins, so a later "keep" undoes an exclusion."""
+    latest = {}
+    for entry in decision_log(run):
+        latest[entry["candidate_id"]] = entry
+    return latest
+
+
+def apply_decisions(run, masks, config=None):
+    """Return (kept, excluded) after recorded review decisions; never edits files.
+
+    A decision binds to the exact mask pixels the reviewer saw. If the mask has
+    changed since (for example a new refinement), the decision is not applied
+    and the mask is flagged for a fresh look instead.
+    """
+    latest = latest_decisions(run)
+    if not latest:
+        return masks, []
+    kept, excluded = [], []
+    for obj in masks:
+        entry = latest.get(obj.get("candidate_id"))
+        if entry is None:
+            kept.append(obj)
+            continue
+        obj = copy.deepcopy(obj)
+        initial = obj.get("refinement", {}).get("initial_rle")
+        seen = {digest(obj["rle"])} | ({digest(initial)} if initial else set())
+        record_ = {key: value for key, value in entry.items() if key != "rle"}
+        if entry["mask_sha256"] not in seen:
+            obj["flags"] = sorted(set(obj.get("flags", [])) | {"review_decision_stale"})
+            obj["review_decision"] = dict(record_, applies=False)
+            kept.append(obj)
+            continue
+        obj["review_decision"] = dict(record_, applies=True)
+        if entry["action"] == "exclude":
+            excluded.append(obj)
+            continue
+        if entry["action"] == "uncertain":
+            obj["flags"] = sorted(set(obj.get("flags", [])) | {"reviewer_uncertain"})
+        else:
+            obj["flags"] = [f for f in obj.get("flags", []) if f != "reviewer_uncertain"]
+        kept.append(obj)
+    if config is not None:
+        annotate_flags(kept, config)
+    return kept, excluded
+
+
+def decide(run, path):
+    """Record exclude/uncertain/keep decisions on proposals of the current result."""
+    manifest = manifest_for(run)
+    payload = read_json(path)
+    require_keys(
+        payload,
+        ["schema", "image_sha256", "reviewer", "decisions"],
+        optional=["basis"],
+        context="decisions file",
+    )
+    if payload["schema"] != DECISIONS_SCHEMA:
+        raise ValueError(f"Decisions schema must be {DECISIONS_SCHEMA}")
+    if payload["image_sha256"] != manifest["canonical_sha256"]:
+        raise ValueError("Decisions refer to a different canonical image")
+    if not isinstance(payload["reviewer"], str) or not payload["reviewer"].strip():
+        raise ValueError("Name the reviewer (person or model and version)")
+    if not isinstance(payload["decisions"], list) or not payload["decisions"]:
+        raise ValueError("decisions must be a nonempty list")
+    # IDs refer to the latest result file, before decisions are applied, so an
+    # excluded mask keeps its ID and can be restored with "keep".
+    source = run / "refined.json" if (run / "refined.json").exists() else run / "selected.json"
+    current(run)  # staleness checks
+    result = read_json(source)
+    by_id = {obj["id"]: obj for obj in result["masks"]}
+    by_candidate = {obj.get("candidate_id"): obj for obj in result["masks"]}
+    entries, seen = [], set()
+    decided_at = now()
+    for item in payload["decisions"]:
+        require_keys(
+            item, ["action", "reason"], optional=["id", "candidate_id"], context="decision"
+        )
+        if ("id" in item) == ("candidate_id" in item):
+            raise ValueError("Each decision needs exactly one of id or candidate_id")
+        obj = by_id.get(item["id"]) if "id" in item else by_candidate.get(item["candidate_id"])
+        if obj is None:
+            raise ValueError(
+                f"No proposal {item.get('id') or item.get('candidate_id')} in {source.name}"
+            )
+        if item["action"] not in DECISION_ACTIONS:
+            raise ValueError(f"Action must be one of {sorted(DECISION_ACTIONS)}")
+        if not isinstance(item["reason"], str) or not item["reason"].strip():
+            raise ValueError(f"Decision on {obj['id']} needs a reason")
+        if obj["candidate_id"] in seen:
+            raise ValueError(f"{obj['id']} appears twice in one decisions file")
+        seen.add(obj["candidate_id"])
+        entries.append(
+            dict(
+                candidate_id=obj["candidate_id"],
+                id_at_decision=obj["id"],
+                label=obj["label"],
+                bbox=obj["bbox"],
+                mask_sha256=digest(obj["rle"]),
+                rle=obj["rle"],
+                action=item["action"],
+                reason=item["reason"].strip(),
+                reviewer=payload["reviewer"].strip(),
+                basis=payload.get("basis"),
+                decided_at=decided_at,
+                result_file=source.name,
+                result_sha256=file_sha(source),
+            )
+        )
+    log = decision_log(run) + entries
+    archive_downstream(run, ["review", "export"])
+    write_json(run / "decisions.json", dict(schema=DECISIONS_SCHEMA, entries=log))
+    counts = Counter(entry["action"] for entry in entries)
+    print(
+        f"Recorded {len(entries)} decisions ({dict(counts)}). Proposal files are unchanged; "
+        "decisions are applied when reviewing, refining and exporting."
+    )
+    return entries
+
+
 def select(run, override=None):
     manifest = manifest_for(run)
     settings = copy.deepcopy(manifest["config"]["selection"])
@@ -638,6 +773,14 @@ def current(run):
             run / "selected.json"
         ):
             raise ValueError("Refinement is stale; rerun it after the current selection")
+    kept, excluded = apply_decisions(run, result["masks"], manifest["config"])
+    if (run / "decisions.json").exists():
+        result = dict(
+            result,
+            masks=kept,
+            excluded_by_review=excluded,
+            decisions_sha256=file_sha(run / "decisions.json"),
+        )
     return result
 
 
@@ -651,7 +794,8 @@ def refine(run, args):
         "raw_index_sha256"
     ) != file_sha(index_path):
         raise ValueError("Selection is stale or inference incomplete; rerun select first")
-    objects = copy.deepcopy(selected["masks"])
+    # Excluded proposals are neither refined nor used as negative clicks.
+    objects, skipped = apply_decisions(run, copy.deepcopy(selected["masks"]))
     target = manifest["config"]["label"]
     settings = manifest["config"]["refinement"]
     width, height = manifest["width"], manifest["height"]
@@ -794,6 +938,10 @@ def refine(run, args):
         refinement_limit=args.limit,
         refinement_suppressions=suppressed,
         refinement_backend=backend.identity if backend else None,
+        excluded_before_refinement=[obj["candidate_id"] for obj in skipped],
+        decisions_sha256=file_sha(run / "decisions.json")
+        if (run / "decisions.json").exists()
+        else None,
     )
     write_json(run / "refined.json", result)
     write_json(
@@ -1014,6 +1162,27 @@ def export(run, omit_image=False):
     write_json(out / "proposals.json", result)
     write_json(out / "manifest.json", manifest)
     write_json(out / "validation.json", validation)
+    stale = {
+        obj["candidate_id"]
+        for obj in result["masks"]
+        if obj.get("review_decision", {}).get("applies") is False
+    }
+    excluded = [
+        entry
+        for entry in latest_decisions(run).values()
+        if entry["action"] == "exclude" and entry["candidate_id"] not in stale
+    ]
+    (out / "excluded.json").unlink(missing_ok=True)
+    if (run / "decisions.json").exists():
+        shutil.copy2(run / "decisions.json", out / "decisions.json")
+        write_json(
+            out / "excluded.json",
+            dict(
+                note="Proposals removed by recorded review decisions, with the exact pixels "
+                "the reviewer saw (COCO RLE) and the reason. Not part of coco.json or masks.zip.",
+                excluded=excluded,
+            ),
+        )
     counts = dict(Counter(obj["label"] for obj in result["masks"]))
     write_json(
         out / "data.json",
@@ -1031,7 +1200,13 @@ def export(run, omit_image=False):
     (out / "README.md").write_text(
         "# Detailed segmentation review draft\n\n"
         f"Proposal counts: {counts}. These are NOT verified object counts. No mask is accepted.\n\n"
-        "Serve this folder locally to open index.html. PNG masks and COCO RLE are pixel-exact. "
+        + (
+            f"{len(excluded)} proposals were excluded by recorded review decisions; "
+            "see excluded.json and decisions.json.\n\n"
+            if excluded
+            else ""
+        )
+        + "Serve this folder locally to open index.html. PNG masks and COCO RLE are pixel-exact. "
         "Independent human review is still needed for labels, object identity, completeness and boundaries. "
         "Model scores, stability and duplicate suppression do not establish accuracy.\n\n"
         "The private run retains raw candidates, score sweeps and refinement attempts separately. "
@@ -1163,6 +1338,7 @@ def main():
         "infer",
         "refine",
         "validate-review",
+        "decide",
     ]:
         p = sub.add_parser(name)
         p.add_argument("run", type=Path)
@@ -1187,6 +1363,12 @@ def main():
             p.add_argument("--limit", type=int, help="Explicit cap on attempted instance updates")
         if name == "validate-review":
             p.add_argument("review", type=Path)
+        if name == "decide":
+            p.add_argument(
+                "decisions",
+                type=Path,
+                help="JSON: exclude, mark uncertain, or keep proposals, each with a reason",
+            )
     args = parser.parse_args()
     guarded_dispatch(args)
 
@@ -1201,6 +1383,7 @@ def guarded_dispatch(args):
         "audit",
         "review-sheets",
         "export",
+        "decide",
     }:
         path = Path(getattr(args, "run", None) or args.out).absolute()
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -1268,6 +1451,8 @@ def dispatch(args):
         )
     elif args.command == "export":
         export(args.run, args.omit_image)
+    elif args.command == "decide":
+        decide(args.run, args.decisions)
 
 
 if __name__ == "__main__":

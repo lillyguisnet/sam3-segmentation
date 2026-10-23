@@ -114,9 +114,9 @@ confidence threshold is not a semantic repair, and may also remove real targets.
 The high-level skill calls for semantic/instance review before trust. The
 shipped automatic tools are still a **proposal generator**, not a substitute for
 that part of the agent's work. A stronger future implementation should require
-explicit task scope, gate point candidates by category, track whole/part identity,
-and support recorded proposal rejection before boundary refinement. Those
-features are not claimed as implemented by these trials.
+explicit task scope, gate point candidates by category and track whole/part
+identity. Those features are not claimed as implemented by these trials.
+Recorded, reversible proposal rejection (`segment.py decide`) was added later.
 
 ## Reproduce the approach on another image
 

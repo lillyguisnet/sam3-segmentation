@@ -236,6 +236,23 @@ uv run --locked --project "$S" python "$S/scripts/segment.py" select "$R/run"
 This adds raw point candidates and retains previous jobs. It does not accept
 reviewer claims or turn a model's suggestions into reference labels.
 
+To remove a proposal you have inspected and found wrong (background, a part
+duplicating another proposal, two objects merged into one), or to mark one as
+uncertain, record a decision with a reason:
+
+```sh
+uv run --locked --project "$S" python "$S/scripts/segment.py" decide "$R/run" /path/decisions.json
+```
+
+The file format is in [review protocol](references/review.md#recording-decisions).
+**Never edit `selected.json`, `refined.json` or status files by hand or with your
+own script**: that breaks the record of what the tools produced. Decisions are
+kept in `decisions.json`, applied when refining, reviewing and exporting, bound
+to the exact pixels you saw, and reversible with `"action": "keep"`. Excluded
+proposals are not refined and appear in `export/excluded.json` with reasons.
+Decide before refinement when you can, so wrong masks are not refined or used
+as negative clicks. Decisions are review judgments, not ground truth.
+
 ## Step 4 — Refine boundaries conservatively
 
 ```sh

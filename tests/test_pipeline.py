@@ -1,5 +1,6 @@
 import copy
 import io
+import json
 from argparse import Namespace
 from zipfile import ZipFile
 
@@ -356,3 +357,130 @@ def test_relation_flags_mark_nested_parts_and_masks_outside_parents():
     assert "no_stable_agreeing_refinement" in flags[1]
     segment.annotate_flags(objects, {"label": "kernel", "whole_objects": []})
     assert "outside_whole_object_proposals" not in objects[3]["flags"]
+
+
+def _decisions(run, tmp_path, items, name="decisions.json"):
+    path = tmp_path / name
+    path.write_text(
+        json.dumps(
+            {
+                "schema": "detailed-segmentation-decisions/1",
+                "image_sha256": segment.manifest_for(run)["canonical_sha256"],
+                "reviewer": "test reviewer",
+                "decisions": items,
+            }
+        )
+    )
+    return path
+
+
+def test_decisions_exclude_flag_and_undo_without_editing_result_files(prepared, tmp_path):
+    run, _, _ = completed(prepared)
+    selected_hash = file_sha(run / "selected.json")
+    masks = read_json(run / "selected.json")["masks"]
+    first, second = masks[0]["id"], masks[1]["id"]
+    segment.decide(
+        run,
+        _decisions(
+            run,
+            tmp_path,
+            [
+                {"id": first, "action": "exclude", "reason": "background, not an object"},
+                {"id": second, "action": "uncertain", "reason": "could be two objects"},
+            ],
+        ),
+    )
+    assert file_sha(run / "selected.json") == selected_hash
+    out = segment.export(run)
+    exported = {a["instance_id"] for a in read_json(out / "coco.json")["annotations"]}
+    assert first not in exported and second in exported
+    excluded = read_json(out / "excluded.json")["excluded"]
+    assert [e["id_at_decision"] for e in excluded] == [first]
+    assert excluded[0]["reason"] == "background, not an object"
+    assert decode(excluded[0]["rle"]).shape == (60, 80)
+    flags = next(o for o in read_json(out / "data.json")["objects"] if o["id"] == second)["flags"]
+    assert "reviewer_uncertain" in flags
+    # A later "keep" restores the excluded proposal; the log keeps both decisions.
+    segment.decide(
+        run,
+        _decisions(
+            run, tmp_path, [{"id": first, "action": "keep", "reason": "re-checked"}], "undo.json"
+        ),
+    )
+    out = segment.export(run)
+    assert first in {a["instance_id"] for a in read_json(out / "coco.json")["annotations"]}
+    assert len(read_json(run / "decisions.json")["entries"]) == 3
+    assert read_json(out / "excluded.json")["excluded"] == []
+
+
+def test_excluded_proposals_are_not_refined_and_changed_masks_go_stale(prepared, tmp_path):
+    run, _, args = completed(prepared)
+    masks = read_json(run / "selected.json")["masks"]
+    gone = masks[0]
+    segment.decide(
+        run,
+        _decisions(run, tmp_path, [{"id": gone["id"], "action": "exclude", "reason": "duplicate"}]),
+    )
+    segment.refine(run, args)
+    refined = read_json(run / "refined.json")
+    assert gone["candidate_id"] not in {m["candidate_id"] for m in refined["masks"]}
+    assert refined["excluded_before_refinement"] == [gone["candidate_id"]]
+    # A decision bound to pixels that later change is not applied silently.
+    log = read_json(run / "decisions.json")
+    log["entries"].append(
+        dict(log["entries"][0], candidate_id=masks[1]["candidate_id"], mask_sha256="0" * 64)
+    )
+    write_json(run / "decisions.json", log)
+    stale = next(
+        m for m in segment.current(run)["masks"] if m["candidate_id"] == masks[1]["candidate_id"]
+    )
+    assert "review_decision_stale" in stale["flags"]
+    assert stale["review_decision"]["applies"] is False
+
+
+@pytest.mark.parametrize(
+    "items",
+    [
+        [{"id": "mask-99999", "action": "exclude", "reason": "x"}],
+        [{"id": "FIRST", "action": "delete", "reason": "x"}],
+        [{"id": "FIRST", "action": "exclude", "reason": " "}],
+        [
+            {"id": "FIRST", "action": "exclude", "reason": "x"},
+            {"id": "FIRST", "action": "keep", "reason": "y"},
+        ],
+        [{"action": "exclude", "reason": "x"}],
+        [],
+    ],
+)
+def test_bad_decisions_are_rejected_whole(prepared, tmp_path, items):
+    run, _, _ = completed(prepared)
+    first = read_json(run / "selected.json")["masks"][0]["id"]
+    items = json.loads(json.dumps(items).replace("FIRST", first))
+    with pytest.raises(ValueError):
+        segment.decide(run, _decisions(run, tmp_path, items))
+    assert not (run / "decisions.json").exists()
+
+
+def test_entry_scripts_do_not_write_bytecode_into_the_skill(tmp_path):
+    import shutil
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    skill = Path(segment.__file__).resolve().parents[1]
+    copy_ = tmp_path / "skill"
+    shutil.copytree(
+        skill / "scripts", copy_ / "scripts", ignore=shutil.ignore_patterns("__pycache__")
+    )
+    subprocess.run(
+        [
+            sys.executable,
+            str(copy_ / "scripts/segment.py"),
+            "demo",
+            "--out",
+            str(tmp_path / "demo"),
+        ],
+        check=True,
+        capture_output=True,
+    )
+    assert not list(copy_.rglob("__pycache__"))

@@ -14,10 +14,14 @@ proposals from a model, never verified labels.
 
 from __future__ import annotations
 
+import sys
+
+# Do not write __pycache__ into the (possibly shared or read-only) skill folder.
+sys.dont_write_bytecode = True
+
 import argparse
 import colorsys
 import json
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 

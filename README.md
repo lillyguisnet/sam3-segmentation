@@ -146,6 +146,7 @@ a diagnostic score sweep. No private photos or mask sets are in the repository.
    similar-sized mask; retain parent/part overlap and flag likely parts.
 6. Audit every region independently. Validate coordinates and then inspect them.
 7. Refine with positive/neighbor-negative prompts; preserve rejected alternatives.
+   Remove inspected mistakes only through recorded, reversible decisions with reasons.
 8. Validate file/pixel consistency and export everything as an unaccepted draft.
 
 The [later audit](skills/detailed-segmentation/references/lessons.md) found that

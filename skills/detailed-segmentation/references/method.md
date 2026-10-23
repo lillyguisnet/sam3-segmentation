@@ -80,7 +80,8 @@ Check alternative candidates in difficult regions.
 
 ## Review flags
 
-Flags mark where to look first. They never delete or accept a mask. Geometry
+Flags mark where to look first. They never delete or accept a mask; removing
+one takes a recorded `decide` decision with a reason. Geometry
 flags are recomputed after every stage, so a boundary update cannot leave a
 stale warning behind.
 
@@ -94,6 +95,8 @@ stale warning behind.
 | `tiny_instance` | Fewer than 30 pixels |
 | `no_trustworthy_neighbor_negatives`, `no_complete_refinement_crop` | Refinement was not attempted |
 | `no_stable_agreeing_refinement` | Refinement was attempted; no hypothesis passed the gates, original kept |
+| `reviewer_uncertain` | A recorded review decision marked it uncertain (see `review_decision.reason`) |
+| `review_decision_stale` | A decision was recorded for this proposal, but its pixels have changed since; look again |
 
 Stability is `area(logit > +1) / area(logit > -1)`. It describes threshold
 sensitivity, not whether the mask is a corn kernel. For text detections it is

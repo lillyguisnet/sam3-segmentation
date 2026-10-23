@@ -3,3 +3,7 @@ line-length = 100
 
 [lint]
 select = ["E4", "E7", "E9", "F", "I", "B"]
+
+[lint.per-file-ignores]
+# Entry scripts disable bytecode writing before importing sibling modules.
+"skills/detailed-segmentation/scripts/{segment,sam,model_smoke}.py" = ["E402"]

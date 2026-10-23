@@ -4,7 +4,8 @@
 
 - The original **106 CPU tests passed** on Linux with Python **3.12.12 and 3.13.13**.
   Five additional non-corn configuration checks brought the suite to **111**; four
-  checks for containment matching, cropped geometry and review flags bring it to **115**.
+  checks for containment matching, cropped geometry and review flags brought it to **115**;
+  the direct SAM tool, recorded review decisions and the no-bytecode rule bring it to **144**.
 - Lint and Python formatting checks passed.
 - The complete copied skill ran its demo outside the repository; the installer
   preserved locks/scripts/licence and refused overwriting an existing skill.
@@ -23,6 +24,15 @@
   ear proposals with 879 boundary updates; review sheets, validation and export
   passed. Only scalar counts are recorded, in the [reproduction notes](skills/detailed-segmentation/references/lessons.md#reproducing-the-original-corn-run).
   No photo or mask from that run is in the repository.
+- A real corn run from a freshly installed copy, with environments outside the
+  skill folder, recorded 5 exclusions and 1 uncertain mark before refinement.
+  Excluded proposals were not refined and appeared only in `export/excluded.json`;
+  no `__pycache__` was written into the skill folder.
+- An independent agent (separate folder, only this skill, GPT-6.1 Sol, high
+  reasoning) ran the full corn workflow in about 26 minutes: 1,331 kernel and 11
+  ear proposals, 872 boundary updates. 98% of the original run's 1,310 kernel
+  masks have a match at IoU >= 0.5 (80% at >= 0.9). It had to write its own
+  script to remove 19 wrong proposals, which led to the `decide` command.
 - An isolated Chromium check passed **desktop, mobile/no horizontal overflow,
   theme variables, selection, original comparison, color fill, flags, category
   changes, zoom, pan and download**, with no page errors.

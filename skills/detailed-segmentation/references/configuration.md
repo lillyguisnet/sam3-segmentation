@@ -113,7 +113,9 @@ review/template.json          review schema skeleton with exact image checksum
 review/sheets.json            full crop/render coordinate mappings
 refinement-raw/*.json.gz       all returned update hypotheses, prompts and identity
 refined.json                  initial masks, chosen updates, failures and proposals
-export/                       viewer, masks.zip, COCO, full proposals, checks
+decisions.json                review decisions (exclude / uncertain / keep), append-only
+export/                       viewer, masks.zip, COCO, full proposals, checks,
+                              excluded.json + decisions.json when decisions exist
 ```
 
 Inference can resume only with the same backend/runtime identity. New review jobs

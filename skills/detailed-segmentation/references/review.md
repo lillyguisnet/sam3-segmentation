@@ -103,6 +103,39 @@ terms. Check the installed CLI's help and official automation permissions first.
 Other agents can read the same sheets and schema. No SDK/provider keys are needed
 by the segmentation tools themselves.
 
+## Recording decisions
+
+After inspecting proposals, record what should change with `segment.py decide
+RUN decisions.json`. IDs are the `mask-NNNNN` IDs of the current result, as shown
+in the viewer and in `selected.json` / `refined.json`.
+
+```json
+{
+  "schema": "detailed-segmentation-decisions/1",
+  "image_sha256": "COPY_FROM_RUN_MANIFEST",
+  "reviewer": "who decided: person, or model and version",
+  "basis": "optional: what was inspected",
+  "decisions": [
+    {"id": "mask-00199", "action": "exclude", "reason": "Two adjacent kernels merged; both are covered by separate proposals"},
+    {"id": "mask-00475", "action": "uncertain", "reason": "One kernel or two under glare; not resolvable"},
+    {"id": "mask-00377", "action": "keep", "reason": "Undo an earlier exclusion after re-checking"}
+  ]
+}
+```
+
+- `exclude` removes the proposal from review sheets, refinement and exports.
+  Its pixels and reason are kept in `export/excluded.json`.
+- `uncertain` keeps it with the `reviewer_uncertain` flag and your reason.
+- `keep` undoes an earlier decision. The newest decision for a proposal wins;
+  older ones stay in the log.
+- A file is applied whole or not at all: unknown IDs, missing reasons, unknown
+  actions or the same proposal twice are errors.
+- Each decision is bound to the mask's exact pixels. If a later refinement or
+  selection changes that mask, the decision is not applied; the mask gets the
+  `review_decision_stale` flag so it is looked at again.
+- Exclude only what you inspected at native resolution. Do not exclude to reach
+  a desired count, and do not exclude a mask merely because a reviewer said so.
+
 ## Final review checklist
 
 - [ ] Every native region has been inspected, not only attractive examples.

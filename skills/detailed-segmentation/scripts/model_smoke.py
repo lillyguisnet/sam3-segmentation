@@ -1,6 +1,11 @@
 #!/usr/bin/env python3
 """Explicit opt-in real-model API check on synthetic shapes, not an accuracy test."""
 
+import sys
+
+# Do not write __pycache__ into the (possibly shared or read-only) skill folder.
+sys.dont_write_bytecode = True
+
 import argparse
 import json
 from pathlib import Path
