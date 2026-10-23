@@ -1,0 +1,6 @@
+{
+  "phrases": ["corn kernel"],
+  "whole_objects": [],
+  "passes": [{"name": "api-smoke", "size": null, "overlap": 0, "grid_step": 128}],
+  "budget": {"max_jobs": 8, "max_grid_points": 64, "max_candidates": 1000}
+}

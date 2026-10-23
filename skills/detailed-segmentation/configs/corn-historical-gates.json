@@ -1,0 +1,6 @@
+{
+  "point_quality_min": 0.78,
+  "point_stability_min": 0.83,
+  "min_area": 8,
+  "max_area": 650
+}

@@ -1,0 +1,9 @@
+{
+  "label": "oval",
+  "phrases": ["yellow oval"],
+  "whole_objects": [],
+  "passes": [{"name": "api-smoke", "size": null, "overlap": 0, "grid_step": 64}],
+  "selection": {"min_area": 10, "max_area": 3000},
+  "refinement": {"crop_size": 128},
+  "budget": {"max_jobs": 8, "max_grid_points": 64, "max_candidates": 1000}
+}

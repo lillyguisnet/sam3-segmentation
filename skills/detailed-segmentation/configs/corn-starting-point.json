@@ -1,0 +1,21 @@
+{
+  "label": "kernel",
+  "phrases": ["corn kernel", "kernel"],
+  "whole_objects": [{"label": "ear", "phrase": "ear of corn"}],
+  "passes": [
+    {"name": "whole", "size": null, "overlap": 0, "grid_step": null},
+    {"name": "coarse", "size": 200, "overlap": 60, "grid_step": 6},
+    {"name": "fine", "size": 120, "overlap": 30, "grid_step": null}
+  ],
+  "selection": {
+    "text_score_min": 0.2,
+    "point_quality_min": null,
+    "point_stability_min": 0.83,
+    "min_area": 5,
+    "max_area": 650,
+    "dedupe_iou": 0.52,
+    "exclude_internal_crop_edges": true
+  },
+  "budget": {"max_jobs": 256, "max_grid_points": 25000, "max_candidates": 100000},
+  "seed": 0
+}

@@ -1,0 +1,15 @@
+name: Test portable skill
+on: [push, pull_request]
+jobs:
+  base-tools:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.4"
+          python-version: "3.12"
+      - run: uv sync --locked --project skills/detailed-segmentation --group dev
+      - run: uv run --locked --project skills/detailed-segmentation --group dev ruff check skills/detailed-segmentation/scripts tests install.py
+      - run: uv run --locked --project skills/detailed-segmentation --group dev pytest tests
+      - run: uv run --locked --project skills/detailed-segmentation python skills/detailed-segmentation/scripts/segment.py demo --out runs/demo

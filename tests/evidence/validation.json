@@ -1,0 +1,73 @@
+{
+  "base_tests": {
+    "known_warning": "pycocotools 2.0.11 emits a NumPy array-copy deprecation warning; pixel round trips passed",
+    "passed": 106,
+    "platform": "Linux x86-64",
+    "python": ["3.12.12", "3.13.13"]
+  },
+  "browser": {
+    "checks": [
+      "desktop",
+      "mobile-no-overflow",
+      "theme variables",
+      "selection",
+      "original comparison",
+      "fill",
+      "flags",
+      "category",
+      "zoom",
+      "pan",
+      "download"
+    ],
+    "page_errors": []
+  },
+  "implementation_hashes": {
+    "core.py": "f0cb47b754f9e8cfc1fb3949c0097f201dd40e99de34d8db431f7ac80b2bd099",
+    "sam3_backend.py": "6014189d53abe7cf0760cd7b5ce32b13185da6ac09c4695a87c1a5db94d99405",
+    "segment.py": "b55943c0b8e9d6e6e19c12cc99556465cc632a2f456d87628f6c1d5019a857fc"
+  },
+  "limits": [
+    "Gated access reused an authorized local checkpoint; a new-account acceptance workflow was not automated or tested.",
+    "No MPS, Windows, macOS or CPU-model inference test.",
+    "CI configuration is included; no GitHub-hosted run has occurred yet.",
+    "No private photograph, mask pool, GPU UUID or credential is included in this summary."
+  ],
+  "model": {
+    "batched_hypotheses": 12,
+    "cuda": "12.8",
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "independent_prompts": 4,
+    "median_batch_single_iou": 1.0,
+    "minimum_batch_single_iou": 0.9222614840989399,
+    "precision": "bf16",
+    "singleton_hypotheses": 12,
+    "source_commit": "0570b3a5be9c4e694f23d85232fb55f4a6f1f7fc",
+    "text_hypotheses": 200,
+    "torch": "2.10.0+cu128",
+    "weights_sha256": "9999e2341ceef5e136daa386eecb55cb414446a00ac2b55eb2dfd2f7c3cf8c9e"
+  },
+  "real_pipeline": {
+    "boundary_updates": 2,
+    "cache_resume": "passed; same raw ledger and downstream outputs retained",
+    "format_validation": {
+      "checks": [
+        "canonical image checksum",
+        "native dimensions",
+        "nonempty masks",
+        "unique IDs",
+        "pixel-tight boxes including last row/column",
+        "mask area",
+        "RLE roundtrip",
+        "all proposals"
+      ],
+      "masks": 2,
+      "native_size": [128, 128]
+    },
+    "input": "Generated two-oval fixture, not the protected corn photo",
+    "point_hypotheses": 12,
+    "proposals": 2,
+    "text_hypotheses": 200
+  },
+  "recorded_at": "2026-10-23T10:50:17.437343+00:00",
+  "scope": "Implementation smoke checks, not measured segmentation accuracy or completeness"
+}

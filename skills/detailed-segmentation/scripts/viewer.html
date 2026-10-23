@@ -1,0 +1,696 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Detailed segmentation · Review</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --bg: var(--color-background-primary, #fff);
+        --sub: var(--color-background-secondary, #f3f4f3);
+        --ink: var(--color-text-primary, #17201c);
+        --muted: var(--color-text-secondary, #67706a);
+        --line: var(--color-border-primary, #d8ddd9);
+        --accent: var(--color-text-info, #245bb5);
+        --warning: var(--color-text-warning, #96610b);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 14px/1.5 var(--font-sans, system-ui, sans-serif);
+      }
+      main {
+        max-width: 1300px;
+        margin: auto;
+        padding: 24px;
+      }
+      .eyebrow {
+        font-size: 11px;
+        letter-spacing: 0.13em;
+        font-weight: 650;
+        color: var(--muted);
+      }
+      h1 {
+        font-size: 30px;
+        letter-spacing: -0.04em;
+        margin: 5px 0 10px;
+      }
+      p {
+        color: var(--muted);
+      }
+      .badge {
+        display: inline-block;
+        border: 1px solid var(--line);
+        border-radius: 20px;
+        color: var(--warning);
+        font-size: 11px;
+        padding: 4px 10px;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        align-items: start;
+        gap: 12px;
+        margin-bottom: 18px;
+      }
+      .stats {
+        display: flex;
+        gap: 24px;
+        flex-wrap: wrap;
+        padding: 15px 0;
+        margin-bottom: 18px;
+        border-block: 1px solid var(--line);
+      }
+      .stat b {
+        font-size: 25px;
+        display: block;
+        line-height: 1.15;
+      }
+      .stat span {
+        font-size: 11px;
+        color: var(--muted);
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 260px;
+        gap: 18px;
+      }
+      .tools {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+      button,
+      select,
+      a.download {
+        font: inherit;
+        color: var(--ink);
+        background: var(--bg);
+        border: 1px solid var(--line);
+        border-radius: var(--border-radius-md, 7px);
+        padding: 7px 10px;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      button:hover,
+      select:hover,
+      a.download:hover {
+        background: var(--sub);
+      }
+      button:focus-visible,
+      select:focus-visible,
+      a:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+      button.active {
+        border-color: var(--accent);
+        color: var(--accent);
+      }
+      label {
+        font-size: 12px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      input {
+        accent-color: var(--accent);
+      }
+      #viewport {
+        height: min(70vh, 700px);
+        min-height: 330px;
+        border: 1px solid var(--line);
+        border-radius: var(--border-radius-md, 8px);
+        background: var(--sub);
+        position: relative;
+        overflow: hidden;
+        touch-action: none;
+      }
+      canvas {
+        width: 100%;
+        height: 100%;
+        display: block;
+        touch-action: none;
+        cursor: crosshair;
+      }
+      #hint {
+        position: absolute;
+        bottom: 9px;
+        left: 9px;
+        pointer-events: none;
+        background: var(--bg);
+        border: 1px solid var(--line);
+        padding: 3px 7px;
+        font: 11px var(--font-mono, monospace);
+        border-radius: 4px;
+        max-width: 90%;
+      }
+      .caption {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        font-size: 11px;
+        color: var(--muted);
+        margin: 7px 0;
+      }
+      .card {
+        padding: 15px;
+        border: 1px solid var(--line);
+        border-radius: var(--border-radius-md, 8px);
+        margin-bottom: 12px;
+      }
+      h2 {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 0 0 10px;
+      }
+      h3 {
+        font-size: 16px;
+        margin: 0 0 8px;
+      }
+      .small,
+      .card p {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .flag {
+        display: block;
+        font-size: 11px;
+        color: var(--warning);
+        border-left: 2px solid var(--line);
+        padding-left: 6px;
+        margin-top: 5px;
+      }
+      .downloads {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+      .downloads a {
+        font-size: 12px;
+      }
+      .count-line {
+        font-size: 12px;
+        color: var(--muted);
+        margin-top: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-size: 11px;
+        font-family: var(--font-mono, monospace);
+        color: var(--muted);
+      }
+      #error {
+        color: var(--warning);
+      }
+      .synthetic {
+        padding: 10px 12px;
+        background: var(--sub);
+        border: 1px solid var(--line);
+        font-size: 12px;
+        margin-bottom: 14px;
+      }
+      .hidden {
+        display: none;
+      }
+      @media (max-width: 800px) {
+        main {
+          padding: 16px;
+        }
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        aside {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 12px;
+        }
+        .card {
+          margin: 0;
+        }
+        header {
+          display: block;
+        }
+        .badge {
+          margin-top: 6px;
+        }
+        .caption {
+          display: block;
+        }
+      }
+      @media (max-width: 480px) {
+        aside {
+          grid-template-columns: 1fr;
+        }
+        .tools button,
+        .tools select {
+          font-size: 12px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">DETAILED SEGMENTATION / REVIEW WORKSPACE</div>
+          <h1>Inspect the pixels, not just the count.</h1>
+        </div>
+        <span class="badge">UNACCEPTED PROPOSALS · NOT GROUND TRUTH</span>
+      </header>
+      <div id="synthetic" class="synthetic hidden">
+        Synthetic demonstration: these shapes test the files and viewer. They
+        are not model predictions or evidence of segmentation quality.
+      </div>
+      <div id="error" role="alert"></div>
+      <div class="stats">
+        <div class="stat">
+          <b id="count">—</b><span>instance mask proposals</span>
+        </div>
+        <div class="stat">
+          <b id="dimensions">—</b><span>unaltered source pixels</span>
+        </div>
+        <div class="stat"><b>0</b><span>human-accepted masks</span></div>
+      </div>
+      <div class="layout">
+        <section>
+          <div class="tools">
+            <select id="layer" aria-label="Object category">
+              <option value="">All object levels</option></select
+            ><button id="original">Original</button><button id="fit">Fit</button
+            ><button id="minus" aria-label="Zoom out">−</button
+            ><button id="plus" aria-label="Zoom in">+</button
+            ><button id="pixels">6× pixels</button
+            ><label><input id="fill" type="checkbox" />Color fill</label
+            ><label><input id="flags" type="checkbox" />Flagged only</label>
+          </div>
+          <div id="viewport">
+            <canvas
+              id="canvas"
+              tabindex="0"
+              aria-label="Mask viewer. Drag to pan, scroll to zoom, click an instance."
+            ></canvas>
+            <div id="hint">Loading…</div>
+          </div>
+          <div class="caption">
+            <span
+              >Drag to pan · scroll to zoom · click an instance · hold Space for
+              original</span
+            ><span id="zoom">—</span>
+          </div>
+          <div id="counts" class="count-line"></div>
+        </section>
+        <aside>
+          <div class="card">
+            <h2>Selected instance</h2>
+            <div id="selection">
+              <h3>Look closer.</h3>
+              <p>
+                Click a mask to inspect its area, category, source and flags.
+              </p>
+            </div>
+            <button id="nextflag">Next flagged mask →</button>
+          </div>
+          <div class="card">
+            <h2>Download the evidence</h2>
+            <div class="downloads">
+              <a class="download" href="masks.zip" download
+                >Binary PNG masks ↓</a
+              ><a class="download" href="coco.json" download>COCO JSON ↓</a
+              ><a class="download" href="proposals.json" download
+                >Full proposals ↓</a
+              ><a class="download" href="manifest.json" download
+                >Run manifest ↓</a
+              ><a class="download" href="validation.json" download
+                >Format checks ↓</a
+              >
+            </div>
+            <p>
+              Nested masks deliberately overlap. A format check proves pixel
+              consistency—not correct labels, boundaries or completeness.
+            </p>
+          </div>
+          <div class="card">
+            <h2>Review limits</h2>
+            <p>
+              Every mask is a proposal. Counts, confidence, stability and
+              agreement between prompts are not measured accuracy.
+            </p>
+            <p>
+              Check thin parts, glare, shadows, edge slivers, merged instances
+              and object identity. Do not fill in hidden shapes. Keep unresolved
+              cases explicit.
+            </p>
+            <p>
+              Check image and annotation rights before sharing this folder
+              publicly.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </main>
+    <script>
+      "use strict";
+      const $ = (id) => document.getElementById(id),
+        canvas = $("canvas"),
+        ctx = canvas.getContext("2d");
+      let data,
+        image,
+        active = [],
+        pick,
+        selected = null,
+        hover = null,
+        scale = 1,
+        fitScale = 1,
+        tx = 0,
+        ty = 0,
+        drag = null,
+        original = false,
+        space = false,
+        raf = 0,
+        flagIndex = -1;
+      const overlay = document.createElement("canvas");
+      function paintSoon() {
+        if (!raf)
+          raf = requestAnimationFrame(() => {
+            raf = 0;
+            paint();
+          });
+      }
+      function cssColor(variable, fallback) {
+        const probe = document.createElement("i");
+        probe.style.color = `var(${variable},${fallback})`;
+        document.body.append(probe);
+        const color = getComputedStyle(probe).color;
+        probe.remove();
+        return color;
+      }
+      function geometry() {
+        const r = $("viewport").getBoundingClientRect(),
+          dpr = devicePixelRatio || 1;
+        canvas.width = Math.round(r.width * dpr);
+        canvas.height = Math.round(r.height * dpr);
+        fitScale = Math.min(
+          (r.width - 24) / data.width,
+          (r.height - 24) / data.height,
+        );
+        fit();
+      }
+      function fit() {
+        scale = fitScale;
+        tx = (canvas.clientWidth - data.width * scale) / 2;
+        ty = (canvas.clientHeight - data.height * scale) / 2;
+        paintSoon();
+      }
+      function zoomTo(
+        value,
+        x = canvas.clientWidth / 2,
+        y = canvas.clientHeight / 2,
+      ) {
+        value = Math.max(fitScale * 0.5, Math.min(30, value));
+        const k = value / scale;
+        tx = x - (x - tx) * k;
+        ty = y - (y - ty) * k;
+        scale = value;
+        paintSoon();
+      }
+      function buildOverlay() {
+        if (!data) return;
+        active = data.objects.filter(
+          (o) =>
+            (!$("layer").value || o.label === $("layer").value) &&
+            (!$("flags").checked || o.flags.length),
+        );
+        pick = new Int32Array(data.width * data.height);
+        pick.fill(-1);
+        overlay.width = data.width;
+        overlay.height = data.height;
+        const c = overlay.getContext("2d");
+        const stroke = cssColor("--color-text-info", "#245bb5");
+        for (let i = 0; i < active.length; i++) {
+          const o = active[i],
+            [bx, by, w, h] = o.bbox,
+            local = new Uint8Array(w * h);
+          if ($("fill").checked) {
+            c.globalAlpha = 0.22;
+            c.fillStyle = `hsl(${(i * 137.508) % 360} 65% 48%)`;
+          }
+          for (const [y, x, n] of o.rows) {
+            pick.fill(i, y * data.width + x, y * data.width + x + n);
+            local.fill(1, (y - by) * w + x - bx, (y - by) * w + x - bx + n);
+            if ($("fill").checked) c.fillRect(x, y, n, 1);
+          }
+          c.globalAlpha = 1;
+          c.fillStyle = stroke;
+          for (let y = 0; y < h; y++)
+            for (let x = 0; x < w; x++) {
+              const k = y * w + x;
+              if (
+                local[k] &&
+                (x === 0 ||
+                  y === 0 ||
+                  x === w - 1 ||
+                  y === h - 1 ||
+                  !local[k - 1] ||
+                  !local[k + 1] ||
+                  !local[k - w] ||
+                  !local[k + w])
+              )
+                c.fillRect(bx + x, by + y, 1, 1);
+            }
+        }
+        if (selected && !active.includes(selected)) selected = null;
+        selection();
+        paintSoon();
+      }
+      function paint() {
+        if (!data || !image) return;
+        const dpr = devicePixelRatio || 1;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
+        ctx.save();
+        ctx.translate(tx, ty);
+        ctx.scale(scale, scale);
+        ctx.imageSmoothingEnabled = false;
+        ctx.drawImage(image, 0, 0);
+        if (!original && !space) {
+          ctx.drawImage(overlay, 0, 0);
+          const o = selected || hover;
+          if (o) {
+            ctx.fillStyle = cssColor("--color-text-danger", "#b53939");
+            ctx.globalAlpha = 0.4;
+            for (const [y, x, n] of o.rows) ctx.fillRect(x, y, n, 1);
+            ctx.globalAlpha = 1;
+          }
+        }
+        ctx.restore();
+        $("zoom").textContent = scale.toFixed(1) + " screen px / source px";
+        $("original").classList.toggle("active", original || space);
+      }
+      function position(e) {
+        const r = canvas.getBoundingClientRect();
+        return {
+          x: (e.clientX - r.left - tx) / scale,
+          y: (e.clientY - r.top - ty) / scale,
+          sx: e.clientX - r.left,
+          sy: e.clientY - r.top,
+        };
+      }
+      function hit(p) {
+        const x = Math.floor(p.x),
+          y = Math.floor(p.y);
+        return x >= 0 && y >= 0 && x < data.width && y < data.height
+          ? active[pick[y * data.width + x]] || null
+          : null;
+      }
+      function selection() {
+        const el = $("selection");
+        el.replaceChildren();
+        if (!selected) {
+          const h = document.createElement("h3"),
+            p = document.createElement("p");
+          h.textContent = "Look closer.";
+          p.textContent =
+            "Click a mask to inspect its area, category, source and flags.";
+          el.append(h, p);
+          return;
+        }
+        const h = document.createElement("h3"),
+          p = document.createElement("p");
+        h.textContent = selected.id;
+        p.textContent =
+          selected.label +
+          " · " +
+          selected.area +
+          " native pixels · unaccepted";
+        el.append(h, p);
+        for (const f of selected.flags) {
+          const span = document.createElement("span");
+          span.className = "flag";
+          span.textContent = f.replaceAll("_", " ");
+          el.append(span);
+        }
+        const pre = document.createElement("pre");
+        pre.textContent = JSON.stringify(
+          {
+            box_xywh: selected.bbox,
+            source: selected.source,
+            boundary_updated: selected.refinement_updated,
+          },
+          null,
+          2,
+        );
+        el.append(pre);
+      }
+      canvas.addEventListener(
+        "wheel",
+        (e) => {
+          e.preventDefault();
+          const p = position(e);
+          zoomTo(scale * Math.exp(-e.deltaY * 0.0016), p.sx, p.sy);
+        },
+        { passive: false },
+      );
+      canvas.addEventListener("pointerdown", (e) => {
+        canvas.focus();
+        canvas.setPointerCapture(e.pointerId);
+        drag = { x: e.clientX, y: e.clientY, tx, ty, moved: false };
+      });
+      canvas.addEventListener("pointermove", (e) => {
+        if (!data) return;
+        const p = position(e);
+        if (drag) {
+          const dx = e.clientX - drag.x,
+            dy = e.clientY - drag.y;
+          if (Math.hypot(dx, dy) > 3) drag.moved = true;
+          if (drag.moved) {
+            tx = drag.tx + dx;
+            ty = drag.ty + dy;
+            paintSoon();
+          }
+          return;
+        }
+        hover = hit(p);
+        $("hint").textContent =
+          `${Math.floor(p.x)}, ${Math.floor(p.y)} px` +
+          (hover ? " · " + hover.id : "");
+        paintSoon();
+      });
+      canvas.addEventListener("pointerup", (e) => {
+        if (drag && !drag.moved) {
+          selected = hit(position(e));
+          selection();
+          paintSoon();
+        }
+        drag = null;
+      });
+      canvas.addEventListener("pointercancel", () => (drag = null));
+      canvas.addEventListener("pointerleave", () => {
+        hover = null;
+        paintSoon();
+      });
+      $("fit").onclick = fit;
+      $("plus").onclick = () => zoomTo(scale * 1.6);
+      $("minus").onclick = () => zoomTo(scale / 1.6);
+      $("pixels").onclick = () => zoomTo(6);
+      $("original").onclick = () => {
+        original = !original;
+        paintSoon();
+      };
+      $("layer").onchange = buildOverlay;
+      $("fill").onchange = buildOverlay;
+      $("flags").onchange = buildOverlay;
+      $("nextflag").onclick = () => {
+        const flags = active.filter((o) => o.flags.length);
+        if (!flags.length) return;
+        selected = flags[++flagIndex % flags.length];
+        const [x, y, w, h] = selected.bbox;
+        scale = Math.max(
+          fitScale,
+          Math.min(
+            8,
+            canvas.clientWidth / (w + 25),
+            canvas.clientHeight / (h + 25),
+          ),
+        );
+        tx = canvas.clientWidth / 2 - (x + w / 2) * scale;
+        ty = canvas.clientHeight / 2 - (y + h / 2) * scale;
+        selection();
+        paintSoon();
+      };
+      window.addEventListener("keydown", (e) => {
+        if (
+          e.code === "Space" &&
+          !["SELECT", "INPUT", "BUTTON"].includes(
+            document.activeElement.tagName,
+          )
+        ) {
+          e.preventDefault();
+          space = true;
+          paintSoon();
+        }
+      });
+      window.addEventListener("keyup", (e) => {
+        if (e.code === "Space") {
+          space = false;
+          paintSoon();
+        }
+      });
+      window.addEventListener("blur", () => {
+        space = false;
+        drag = null;
+        paintSoon();
+      });
+      new MutationObserver(buildOverlay).observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ["style", "class", "data-theme"],
+      });
+      async function start() {
+        const response = await fetch("data.json");
+        if (!response.ok) throw new Error("Could not read data.json");
+        data = await response.json();
+        $("count").textContent = data.objects.length.toLocaleString();
+        $("dimensions").textContent = data.width + " × " + data.height;
+        $("counts").textContent = Object.entries(data.counts)
+          .map(([k, v]) => k + ": " + v.toLocaleString())
+          .join(" · ");
+        if (data.synthetic) $("synthetic").classList.remove("hidden");
+        for (const label of Object.keys(data.counts)) {
+          const option = document.createElement("option");
+          option.value = label;
+          option.textContent = label;
+          $("layer").append(option);
+        }
+        image = await new Promise((resolve, reject) => {
+          const im = new Image();
+          im.onload = () => resolve(im);
+          im.onerror = () =>
+            reject(
+              new Error(
+                "Add the unchanged canonical original.png locally to use this viewer. It may have been intentionally omitted from this export.",
+              ),
+            );
+          im.src = "original.png";
+        });
+        buildOverlay();
+        geometry();
+        new ResizeObserver(geometry).observe($("viewport"));
+        $("hint").textContent = "Click a mask to inspect";
+        window.__segmentationReady = true;
+      }
+      start().catch((error) => {
+        $("error").textContent = error.message;
+        console.error(error);
+      });
+    </script>
+  </body>
+</html>
