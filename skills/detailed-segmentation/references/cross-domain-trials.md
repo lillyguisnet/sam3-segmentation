@@ -146,8 +146,27 @@ as a target. The scalar validation record is in
   segbench authors); the dog is an official SAM demo asset whose picture-specific
   redistribution terms were not independently cleared. Private previews are not
   a blanket public release permission.
-- The tested implementation was commit `e1fcd71`. Later versions add a same-label
-  containment rule to duplicate matching and two review flags (nested part, outside
-  every parent). Those were not rerun on these five images, so the counts above
-  describe the older selection. This report adds evidence,
+- The tested implementation was commit `e1fcd71`. See the rerun below for the
+  later containment rule and review flags. This report adds evidence,
   examples and warnings, not a claim that the observed failures have been fixed.
+
+## Rerun with containment matching and review flags (23 October 2026)
+
+Same five photos, same profiles, `refine --limit 120`, run through the command
+line from a fresh copy of the skill (one GPU, about 45-100 seconds per photo).
+
+| Scene | Before | After | What changed |
+|---|---:|---:|---|
+| Dog | 2 | 2 | Nothing. The chair patch is still there and unflagged: no parent object is configured, so neither new flag can apply |
+| Jars | 22 | 20 | A background lid fragment merged into another mask. Stand pieces and small lid fragments at the back remain; 4 masks flagged as nested parts |
+| Insects | 117 | 100 | 14 earlier masks gone; on inspection they were single wings or wing groups inside a whole-butterfly mask, plus two odd chain-shaped fragments. 29 remaining wing-like masks are flagged as nested. The light and wall switch remain, flagged only as grid-point origin |
+| Mushrooms | 87 caps + 1 cluster | 85 caps + 1 cluster | 56 masks flagged as outside the cluster: almost all ground-litter leaves. 7 flagged as nested cap parts |
+| Cows | 24 | 20 | A tail, a leg-area piece and a deadwood fragment were merged into larger masks. Deadwood, separate legs/heads and a duplicate cow remain mostly unflagged, because those pieces sit beside the body mask rather than inside it |
+
+Every removed mask was checked by eye against the mask that absorbed it. None
+was a separate whole object. That is a visual check on five photos, not a
+measured precision. The new flags help most when the profile has a parent
+object (the mushroom cluster) or when parts lie inside wholes (insect wings).
+They do not catch background objects in single-level profiles (dog, cows,
+insects) or side-by-side parts (cow legs). All exports still passed the
+native/RLE/PNG checks; nothing was accepted.

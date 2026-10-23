@@ -104,7 +104,8 @@ All exported masks passed native/RLE/PNG checks, but semantic false positives,
 parent/part duplicates and fine-boundary defects remained. Independent model
 audits are unverified judgments, not ground truth. The [trial report](docs/cross-domain-trials.md)
 records both useful masks and failures; the [scalar evidence](tests/evidence/cross-domain-trials.json)
-contains no input photos or private masks. The five new tests only validate
+contains no input photos or private masks. A rerun after the containment rule
+and review flags were added is summarized at the end of the trial report. The five new tests only validate
 those configs and confirm they replace corn-specific semantic/scale fields.
 
 ## What these results do not establish
