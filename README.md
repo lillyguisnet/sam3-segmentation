@@ -76,7 +76,7 @@ shapes, **not model segmentation quality**. No GPU, model weights or credentials
 
 Read [setup](skills/detailed-segmentation/references/setup.md) first. The supplied
 model path targets **Linux x86-64 + NVIDIA**, including Windows through WSL2.
-Base tools also work without a GPU. macOS/MPS inference is not implemented.
+Base tools also work without a GPU. **CPU and macOS/MPS model inference are not implemented.**
 Allow substantial disk/GPU headroom; obtain download approval and accept Meta's
 gated SAM 3 terms yourself. Never send tokens to an agent in chat.
 

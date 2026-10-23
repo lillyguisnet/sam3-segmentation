@@ -479,7 +479,9 @@ def build_parser():
             help="exif (default) turns phone photos upright, as image viewers show them",
         )
         p.add_argument("--png", action="store_true", help="Also write one PNG per mask")
-        p.add_argument("--device", default="cuda:0")
+        p.add_argument(
+            "--device", default="cuda:0", help="NVIDIA GPU, e.g. cuda:0 (no CPU support)"
+        )
         p.add_argument("--precision", choices=["bf16"], default="bf16")
         p.add_argument("--batch-size", type=int, default=24)
         p.add_argument("--checkpoint", type=Path, help="Existing sam3.pt instead of downloading")

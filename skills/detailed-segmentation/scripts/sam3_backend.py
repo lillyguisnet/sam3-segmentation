@@ -89,8 +89,11 @@ class Sam3Backend:
                 raise RuntimeError(
                     "This GPU does not support BF16, which the pinned SAM 3 code requires."
                 )
-        elif device != "cpu":
-            raise ValueError("Validated device paths are cpu and cuda:N; MPS is not implemented")
+        else:
+            raise ValueError(
+                "SAM 3 inference needs an NVIDIA GPU (--device cuda:N). "
+                "CPU and macOS/MPS inference are not implemented."
+            )
         torch.set_num_threads(8)
         torch.manual_seed(seed)
         torch.backends.cuda.matmul.allow_tf32 = True
@@ -191,9 +194,8 @@ class Sam3Backend:
         self.state = None
 
     def context(self):
-        # BF16 autocast on both GPU and CPU: the upstream fused layers emit BF16.
-        device_type = "cuda" if self.device.startswith("cuda") else "cpu"
-        return self.torch.autocast(device_type, dtype=self.torch.bfloat16)
+        # The upstream fused layers emit BF16, so the whole model runs under BF16 autocast.
+        return self.torch.autocast("cuda", dtype=self.torch.bfloat16)
 
     def image_state(self, image):
         key = (image.size, hashlib.sha256(image.tobytes()).hexdigest())

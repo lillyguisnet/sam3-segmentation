@@ -13,12 +13,12 @@ key. Nothing requires the author's computer or a local endpoint.
 | Supplied SAM 3 backend | Linux x86-64, Python 3.12, NVIDIA driver compatible with CUDA 12.8 wheels | Several GB of runtime/model downloads; gated Hugging Face access |
 | Windows model inference | WSL2 Linux and an NVIDIA driver that supports WSL CUDA | Same model environment; do not install a second Linux kernel driver inside WSL |
 | macOS/MPS | Base tools work; this backend has no MPS implementation | Use an approved Linux GPU host or implement and validate an adapter |
-| CPU model inference | Linux model environment; `--device cpu` (BF16 on the processor) | Same gated weights; very slow. The old FP32 path crashed; the BF16 path no longer hits that error but has not been run to completion |
+| CPU model inference | **Not implemented.** The tools refuse `--device cpu` | Use the base tools, or an approved Linux NVIDIA GPU machine |
 | Hosted visual review | Optional official provider application/API | User's own permitted access and explicit photo-upload consent |
 
 The portable wrapper is smoke-tested on an RTX 3090, not every GPU or OS.
 The base suite was run on Linux with Python 3.12 and 3.13. Windows/macOS base
-compatibility and CPU model inference have not been tested here. Plan
+compatibility have not been tested here. CPU model inference is not implemented. Plan
 for **12–24 GB GPU memory and 16–32 GB system RAM** as a conservative working
 budget, not a measured minimum or guarantee. Batch size, crop sizes and concurrent
 processes matter. Allow roughly **20–40 GB disk headroom** for environments,
@@ -131,7 +131,7 @@ larger configuration. Loading a model is not proof its masks are semantically ri
   other users' processes. Smaller crops can change the object scale; record them.
 - **BF16 unsupported:** the pinned SAM 3 code casts some layers to BF16 itself, so
   FP32 is not an option (an FP32 run fails with a dtype error). Use a GPU with
-  BF16 support (NVIDIA Ampere or newer) or `--device cpu`.
+  BF16 support (NVIDIA Ampere or newer). CPU inference is not implemented.
 - **Missing SciPy/Pillow/pycocotools:** use the declared environment, not ad hoc
   installs in an unrelated global environment.
 - **Build fails on non-Linux or ARM:** the CUDA model lock targets Linux NVIDIA.

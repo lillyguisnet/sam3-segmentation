@@ -4,8 +4,8 @@
 loop or refinement of the full workflow. Use it when a quick outline is enough,
 to explore a photo before writing a full config, or to build your own procedure.
 
-It needs the model environment from [setup](setup.md) (Linux + NVIDIA, accepted
-SAM 3 terms). Below, `SAM` stands for:
+It needs the model environment from [setup](setup.md) (Linux + NVIDIA GPU, accepted
+SAM 3 terms). CPU and macOS inference are not implemented. Below, `SAM` stands for:
 
 ```sh
 uv run --locked --project "$S/environments/sam3" python "$S/scripts/sam.py"

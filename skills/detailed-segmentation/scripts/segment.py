@@ -1132,7 +1132,9 @@ def doctor():
 
 
 def model_options(parser):
-    parser.add_argument("--device", default="cuda:0")
+    parser.add_argument(
+        "--device", default="cuda:0", help="NVIDIA GPU, e.g. cuda:0 (no CPU support)"
+    )
     parser.add_argument("--precision", choices=["bf16"], default="bf16")
     parser.add_argument("--batch-size", type=int, default=24)
     parser.add_argument("--checkpoint", type=Path, help="Local checkpoint; its SHA256 is recorded")

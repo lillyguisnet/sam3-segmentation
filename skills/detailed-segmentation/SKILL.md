@@ -12,7 +12,8 @@ license: MIT
 for a quick outline, a few objects, a "segment everything" pass, exploring a
 photo before a full run, or your own procedure. Read
 [direct SAM calls](references/direct-sam.md). `S` is the absolute path of this
-skill folder. The model must be installed first, with the user's approval: see
+skill folder. Direct calls need an NVIDIA GPU too (no CPU or Mac support). The
+model must be installed first, with the user's approval: see
 "Install the actual model only after approval" below (the same rules apply).
 
 ```sh
@@ -84,9 +85,9 @@ model was tested merely because this demo worked.
 ## Install the actual model only after approval
 
 The supplied model environment targets **Linux + NVIDIA CUDA** (Windows through
-WSL2). macOS/MPS is not an implemented model path. CPU-only users can use all
-geometry, review and export tools, or rent an approved GPU machine. CPU SAM 3
-inference is available as an explicit slow fallback, not a practical promise.
+WSL2). **CPU and macOS/MPS model inference are not implemented**: the tools
+refuse any device other than `cuda:N`. Without an NVIDIA GPU, users can still
+run the demo, geometry, review and export tools, or rent an approved GPU machine.
 
 ```sh
 uv sync --locked --project "$S/environments/sam3"

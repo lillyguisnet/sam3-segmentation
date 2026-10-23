@@ -35,7 +35,7 @@ remain excluded from the repository.
 A new-account Hugging Face acceptance flow was **not** automated or tested; the
 model checks reused an authorized local checkpoint. The repository has not been
 published to GitHub, so no GitHub-hosted CI run has occurred. Windows/macOS base
-compatibility, MPS and CPU model inference were not tested here.
+compatibility were not tested here. CPU and MPS model inference are not implemented.
 
 Known warnings: pycocotools 2.0.11 emits an array-copy deprecation warning with
 newer NumPy; exact mask round trips passed. Upstream SAM/timm emit deprecation
