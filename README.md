@@ -100,6 +100,9 @@ completed requests; a changed model/runtime belongs in a new run. Do not expect
 the historical count: different images, crop grids and settings change outputs.
 The example area limits assume small corn-image pixels; inspect before reusing
 those settings for other images or categories.
+`--limit 200` refines only the first 200 masks from the top of the image; omit it
+to refine everything, as the original run did. To repeat the original corn
+experiment, see the [stage-by-stage reproduction notes](skills/detailed-segmentation/references/lessons.md#reproducing-the-original-corn-run).
 
 ## Does it work beyond corn?
 
@@ -120,7 +123,8 @@ a diagnostic score sweep. No private photos or mask sets are in the repository.
 2. Freeze canonical pixels and native coordinates. Never invent resolution.
 3. Compare full-image, coarse and fine views. Specify the intended object level.
 4. Preserve raw candidates before gates; inspect score distributions and misses.
-5. Match same-category duplicates using exact mask IoU; retain parent/part overlap.
+5. Match same-category duplicates by exact mask IoU or near-total containment of a
+   similar-sized mask; retain parent/part overlap and flag likely parts.
 6. Audit every region independently. Validate coordinates and then inspect them.
 7. Refine with positive/neighbor-negative prompts; preserve rejected alternatives.
 8. Validate file/pixel consistency and export everything as an unaccepted draft.

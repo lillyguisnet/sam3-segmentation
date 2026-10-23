@@ -98,6 +98,9 @@ Copy `configs/corn-starting-point.json` only if the image scale is comparable to
 the original small corn photo. Otherwise make a config for this image using
 [the config guide](references/configuration.md). Object-size limits and thresholds
 are starting hypotheses, never universal biological or model constants.
+To repeat the original corn experiment itself, follow
+[the reproduction mapping](references/lessons.md#reproducing-the-original-corn-run):
+it lists each original stage, what this tool does differently, and a measured rerun.
 
 ```sh
 uv run --locked --project "$S" python "$S/scripts/segment.py" prepare /path/photo.jpg --out "$R/run" --config /path/config.json --orientation raw
@@ -168,9 +171,14 @@ join hidden fragments merely to force a single object count.
 
 Inspect category and physical identity **before** trusting boundary refinement.
 A lamp-shaped point mask is not an insect; a jar lid and jar body are not two jars.
-The current automatic tools flag point semantics but do not implement a complete
-category gate or whole/part identity resolver. If those errors remain, stop with
-an explicit review draft rather than claiming a cleaner boundary fixed them.
+The tools only flag these cases: `point_semantics_unverified` (grid-point origin),
+`inside_larger_same_label_proposal` (likely a part of another proposal) and
+`outside_whole_object_proposals` (outside every parent, such as every ear). Start
+with the viewer's "Flagged only" filter; the flag list is in
+[method](references/method.md#review-flags). Flags are not a complete category gate
+or whole/part identity resolver, and unflagged masks can still be wrong. If those
+errors remain, stop with an explicit review draft rather than claiming a cleaner
+boundary fixed them.
 
 Read [review protocol](references/review.md). Use an independent vision-capable
 agent if authorized, and separate source-image inventory from proposal audit to
@@ -202,8 +210,9 @@ reviewer claims or turn a model's suggestions into reference labels.
 uv run --locked --project "$S/environments/sam3" python "$S/scripts/segment.py" refine "$R/run" --device cuda:0 --limit 200
 ```
 
-`--limit` caps attempted instance updates explicitly. Omit only when the full
-budget is approved. Refinement uses an interior positive point and up to three
+`--limit` caps attempted instance updates explicitly, in mask-ID order (top of
+the image first), so a small limit leaves the lower part unrefined. Omit only
+when the full budget is approved. Refinement uses an interior positive point and up to three
 nearby same-category negatives that are outside the original mask. It does not
 invent negative corners when no trustworthy neighbor exists. Isolated targets
 with no suitable neighbor negative are deliberately skipped and flagged; this

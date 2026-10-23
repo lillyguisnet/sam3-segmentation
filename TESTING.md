@@ -3,7 +3,8 @@
 ## Checks performed locally — 23 October 2026
 
 - The original **106 CPU tests passed** on Linux with Python **3.12.12 and 3.13.13**.
-  Five additional non-corn configuration checks bring the current suite to **111**.
+  Five additional non-corn configuration checks brought the suite to **111**; four
+  checks for containment matching, cropped geometry and review flags bring it to **115**.
 - Lint and Python formatting checks passed.
 - The complete copied skill ran its demo outside the repository; the installer
   preserved locks/scripts/licence and refused overwriting an existing skill.
@@ -17,6 +18,11 @@
   selected proposals, retained two bounded boundary updates, exported native
   PNG/COCO masks, and resumed cached inference without invalidating unchanged
   downstream evidence. It did not use the protected corn photograph.
+- A later local rerun of the **whole corn workflow on the original photograph**
+  (copied skill, fresh environments, RTX 3090, BF16) produced 1,350 kernel and 19
+  ear proposals with 879 boundary updates; review sheets, validation and export
+  passed. Only scalar counts are recorded, in the [reproduction notes](skills/detailed-segmentation/references/lessons.md#reproducing-the-original-corn-run).
+  No photo or mask from that run is in the repository.
 - An isolated Chromium check passed **desktop, mobile/no horizontal overflow,
   theme variables, selection, original comparison, color fill, flags, category
   changes, zoom, pan and download**, with no page errors.

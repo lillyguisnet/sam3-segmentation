@@ -28,6 +28,7 @@ from core import (
     SCHEMA,
     bbox,
     canonical_image,
+    crop_intersection,
     decode,
     dedupe,
     deepest,
@@ -38,6 +39,7 @@ from core import (
     grid_points,
     iou,
     lift,
+    local_crop,
     mask_rows,
     read_json,
     record,
@@ -491,10 +493,66 @@ def materialize(run, manifest, selection):
     return candidates, dict(rejected)
 
 
-def annotate_flags(objects):
-    for obj in objects:
+# Flags derived from the current geometry. They are recomputed at every stage so a
+# boundary update cannot leave a stale warning (or hide a new one).
+COMPUTED_FLAGS = {
+    "fragmented_boundary",
+    "tiny_instance",
+    "point_semantics_unverified",
+    "single_pass_only",
+    "inside_larger_same_label_proposal",
+    "outside_whole_object_proposals",
+}
+NESTED_FLAG_FRACTION = 0.87
+OUTSIDE_FLAG_FRACTION = 0.15
+
+
+def relation_flags(objects, config):
+    """Cheap identity warnings for review; never used to delete a proposal.
+
+    - A mask mostly inside a larger same-label proposal is often a part (a wing,
+      a lid, half a kernel) rather than another instance.
+    - A main-label mask largely outside every whole-object proposal (for corn,
+      outside every ear) is often background. Skipped when no parents exist.
+    """
+    flags = [set() for _ in objects]
+    locals_ = [local_crop(decode(obj["rle"]), obj["bbox"]) for obj in objects]
+    for i, a in enumerate(objects):
+        for j, b in enumerate(objects):
+            if i == j or a["label"] != b["label"] or b["area"] <= a["area"]:
+                continue
+            inter = crop_intersection(locals_[i], a["bbox"], locals_[j], b["bbox"])
+            if inter >= NESTED_FLAG_FRACTION * a["area"]:
+                flags[i].add("inside_larger_same_label_proposal")
+                break
+    if config is not None:
+        parents = {whole["label"] for whole in config.get("whole_objects", [])}
+        parent_objects = [k for k, obj in enumerate(objects) if obj["label"] in parents]
+        if parent_objects:
+            for i, obj in enumerate(objects):
+                if obj["label"] != config["label"]:
+                    continue
+                covered = np.zeros_like(locals_[i])
+                x, y, w, h = obj["bbox"]
+                for k in parent_objects:
+                    px, py, pw, ph = objects[k]["bbox"]
+                    x0, y0 = max(x, px), max(y, py)
+                    x1, y1 = min(x + w, px + pw), min(y + h, py + ph)
+                    if x0 < x1 and y0 < y1:
+                        covered[y0 - y : y1 - y, x0 - x : x1 - x] |= locals_[k][
+                            y0 - py : y1 - py, x0 - px : x1 - px
+                        ]
+                outside = int(np.count_nonzero(locals_[i] & ~covered))
+                if outside > OUTSIDE_FLAG_FRACTION * obj["area"]:
+                    flags[i].add("outside_whole_object_proposals")
+    return flags
+
+
+def annotate_flags(objects, config=None):
+    related = relation_flags(objects, config)
+    for obj, extra in zip(objects, related, strict=True):
         mask = decode(obj["rle"])
-        flags = set(obj.get("flags", []))
+        flags = (set(obj.get("flags", [])) - COMPUTED_FLAGS) | extra
         if fragment_fraction(mask) > 0.04:
             flags.add("fragmented_boundary")
         if obj["area"] < 30:
@@ -512,9 +570,8 @@ def annotate_flags(objects):
 
 
 def assign_ids(objects):
-    objects.sort(
-        key=lambda r: (r["label"], deepest(decode(r["rle"]))[1], deepest(decode(r["rle"]))[0])
-    )
+    centers = {id(r): deepest(decode(r["rle"])) for r in objects}
+    objects.sort(key=lambda r: (r["label"], centers[id(r)][1], centers[id(r)][0]))
     for i, obj in enumerate(objects, 1):
         obj["id"] = f"mask-{i:05d}"
     return objects
@@ -529,8 +586,13 @@ def select(run, override=None):
     check["selection"] = settings
     validate_config(check)
     candidates, rejected = materialize(run, manifest, settings)
-    objects, suppressed = dedupe(candidates, settings["dedupe_iou"])
-    annotate_flags(objects)
+    objects, suppressed = dedupe(
+        candidates,
+        settings["dedupe_iou"],
+        settings["dedupe_containment"],
+        settings["dedupe_containment_max_area_ratio"],
+    )
+    annotate_flags(objects, manifest["config"])
     assign_ids(objects)
     result = dict(
         schema=SCHEMA,
@@ -594,8 +656,9 @@ def refine(run, args):
     settings = manifest["config"]["refinement"]
     width, height = manifest["width"], manifest["height"]
     size = settings["crop_size"]
-    masks = [decode(obj["rle"]) for obj in objects]
-    centers = [deepest(mask) for mask in masks]
+    # Decode one mask at a time: keeping every full-image mask alive costs
+    # gigabytes on a phone-sized photo with thousands of proposals.
+    centers = [deepest(decode(obj["rle"])) for obj in objects]
     groups = {}
     attempted = 0
     for i, obj in enumerate(objects):
@@ -616,13 +679,14 @@ def refine(run, args):
             continue
         crop = min(options, key=lambda c: (cx - c[0] - c[2] / 2) ** 2 + (cy - c[1] - c[3] / 2) ** 2)
         X, Y, cw, ch = crop
+        own = decode(obj["rle"])
         negatives = []
         for j in sorted(
             range(len(objects)), key=lambda j: np.linalg.norm(np.array(centers[j]) - centers[i])
         ):
             qx, qy = centers[j]
             if j != i and objects[j]["label"] == target and X <= qx < X + cw and Y <= qy < Y + ch:
-                if np.linalg.norm(np.array(centers[j]) - centers[i]) >= 5 and not masks[i][qy, qx]:
+                if np.linalg.norm(np.array(centers[j]) - centers[i]) >= 5 and not own[qy, qx]:
                     negatives.append([qx - X, qy - Y])
                     if len(negatives) == 3:
                         break
@@ -662,7 +726,7 @@ def refine(run, args):
         for hypothesis in saved["candidates"]:
             by_prompt.setdefault(hypothesis["prompt_index"], []).append(hypothesis)
         for j, (i, prompt) in enumerate(group):
-            old = masks[i]
+            old = decode(objects[i]["rle"])
             options = []
             for hypothesis in by_prompt.get(j, []):
                 local = decode(hypothesis["rle"])
@@ -705,7 +769,6 @@ def refine(run, args):
                     stability=hypothesis["stability"],
                     agreement=agreement,
                 )
-                objects[i]["flags"] = [f for f in objects[i]["flags"] if f != "fragmented_boundary"]
             else:
                 objects[i].setdefault("flags", []).append("no_stable_agreeing_refinement")
             objects[i]["refinement"] = history
@@ -713,8 +776,14 @@ def refine(run, args):
                 dict(candidate_id=objects[i]["candidate_id"], updated=history["updated"])
             )
         print(f"Refinement crop {crop}: {len(group)} targets", flush=True)
-    objects, suppressed = dedupe(objects, selected["selection"]["dedupe_iou"])
-    annotate_flags(objects)
+    chosen = selected["selection"]
+    objects, suppressed = dedupe(
+        objects,
+        chosen["dedupe_iou"],
+        chosen.get("dedupe_containment"),
+        chosen.get("dedupe_containment_max_area_ratio"),
+    )
+    annotate_flags(objects, manifest["config"])
     assign_ids(objects)
     result = dict(
         selected,
@@ -1018,7 +1087,7 @@ def demo(out):
         warning="Synthetic plumbing demo, not evidence of model quality.",
     )
     write_json(out / "manifest.json", manifest)
-    annotate_flags(masks)
+    annotate_flags(masks, manifest["config"])
     assign_ids(masks)
     write_json(
         out / "selected.json",

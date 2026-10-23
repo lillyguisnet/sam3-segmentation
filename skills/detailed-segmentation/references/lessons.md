@@ -96,6 +96,48 @@ in batch versus singleton calls, reporting the minimum as well as the median.
 Remaining numerical differences are recorded, not described as perfect identity.
 These are implementation checks on generated shapes, not a natural-image benchmark.
 
+## Reproducing the original corn run
+
+The original run was a set of one-off scripts. This table maps each stage to
+the portable tool, including what deliberately differs.
+
+| Original stage | Original settings | This tool |
+|---|---|---|
+| Whole-image baseline | SAM 3.1 video service; ear/kernel/husk/silk/cob phrases; threshold 0.25 | `whole` pass + `whole_objects` ear query on the SAM 3 image model, text score 0.2. Husk, silk and cob are not queried |
+| 200px service tiles | Returned only 91 kernels | Not reproduced (superseded) |
+| Dense pass | 200px tiles, ~60px overlap; grid step 6; `corn kernel`, `kernel` at 0.2; point quality ≥0.78, stability ≥0.83, area 8–650, prompt inside mask | `coarse` pass. Point-quality gate off by default; `configs/corn-historical-gates.json` restores 0.78 |
+| Fine pass | 120px tiles, 30px overlap, text only, area 5–650 | `fine` pass, same settings |
+| Merge | IoU >0.48, or ≥0.87 contained with area ratio <2.2; ranked by score, crop support, fragmentation and a fine-crop bonus | IoU ≥0.52 plus the same containment rule; fixed order: text, then finer crop, then score |
+| Flags | outside-ear, low score, single scale, fragmented, tiny | Same, except low score (scores from different heads are not comparable); adds nested-part flag |
+| Refinement | 120px views; centre point + 3 nearest neighbour negatives, padded with invented crop-corner negatives; reviewer negatives; gates 0.70/0.82, IoU ≥0.50 (≥0.68 with multi-scale support), area ratio 0.5–1.65 | Same gates and views. No invented negatives: isolated masks are skipped and flagged. Reviewer points become new candidates through `infer --review` instead |
+| Parts | Silk and exposed-cob text on three hand-picked crops | Not implemented. Report silk and cob as unresolved |
+| Ear curation | 12 ears kept after two independent reviewer passes, with identity notes | Manual. The tool returns every ear proposal above 0.2, including nested fragments; review them |
+
+Commands, with `S` and `R` as in the skill:
+
+```sh
+uv run --locked --project "$S" python "$S/scripts/segment.py" prepare corn.png --out "$R/corn" --config "$S/configs/corn-starting-point.json"
+uv run --locked --project "$S/environments/sam3" python "$S/scripts/segment.py" infer "$R/corn" --device cuda:0
+uv run --locked --project "$S" python "$S/scripts/segment.py" audit "$R/corn"
+uv run --locked --project "$S" python "$S/scripts/segment.py" select "$R/corn"
+# Optional comparison with the original point gates on the same saved pool:
+# select "$R/corn" --selection "$S/configs/corn-historical-gates.json"
+uv run --locked --project "$S/environments/sam3" python "$S/scripts/segment.py" refine "$R/corn" --device cuda:0
+```
+
+The original refined every kernel, so it used no `--limit`. Then review sheets,
+review, validate and export as in the skill.
+
+**Measured rerun, 23 October 2026**, on the original 480×500 photo (RTX 3090,
+BF16, existing checkpoint): 99 requests, about 31 seconds of model time; 1,350
+kernel and 19 ear proposals; 879 boundary updates; 32 containment matches.
+Flags: 93 kernels outside every ear proposal (mostly ear edges, some gap
+fill), 23 nested inside larger kernels. Without the containment rule the same
+pool gave 1,371 kernels and 21 ears. The historical gate profile gave 1,349
+kernels: fine-crop text proposals dominate, so point candidates rarely survive.
+The original run had 1,310 kernels, 854 updates and 12 reviewed ears. All of
+these are unverified proposals; agreement in counts is not agreement in masks.
+
 ## What changed in the portable skill
 
 - No family service, private cache path, private dataset or subscription assumed.

@@ -146,5 +146,8 @@ as a target. The scalar validation record is in
   segbench authors); the dog is an official SAM demo asset whose picture-specific
   redistribution terms were not independently cleared. Private previews are not
   a blanket public release permission.
-- The tested implementation was commit `e1fcd71`. This report adds evidence,
+- The tested implementation was commit `e1fcd71`. Later versions add a same-label
+  containment rule to duplicate matching and two review flags (nested part, outside
+  every parent). Those were not rerun on these five images, so the counts above
+  describe the older selection. This report adds evidence,
   examples and warnings, not a claim that the observed failures have been fixed.

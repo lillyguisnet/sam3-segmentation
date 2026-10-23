@@ -31,6 +31,11 @@ DEFAULT_CONFIG = {
         "min_area": 5,
         "max_area": 650,
         "dedupe_iou": 0.52,
+        # The original corn merge also matched a mask lying mostly inside a
+        # similar-sized same-label mask (a kernel and a slightly leaky copy).
+        # IoU alone keeps both. The area-ratio cap keeps parents and parts.
+        "dedupe_containment": 0.87,
+        "dedupe_containment_max_area_ratio": 2.2,
         "exclude_internal_crop_edges": True,
     },
     "refinement": {
@@ -112,21 +117,31 @@ def iou(a, b):
     return intersection / union if union else 0.0
 
 
-def crop_iou(a, box_a, b, box_b):
+def crop_intersection(a, box_a, b, box_b):
     """Intersect pixel-tight crops, including the last occupied row and column."""
     ax, ay, aw, ah = box_a
     bx, by, bw, bh = box_b
     x0, y0 = max(ax, bx), max(ay, by)
     x1, y1 = min(ax + aw, bx + bw), min(ay + ah, by + bh)
     if x0 >= x1 or y0 >= y1:
-        return 0.0
-    intersection = int(
+        return 0
+    return int(
         np.count_nonzero(
             a[y0 - ay : y1 - ay, x0 - ax : x1 - ax] & b[y0 - by : y1 - by, x0 - bx : x1 - bx]
         )
     )
+
+
+def crop_iou(a, box_a, b, box_b):
+    intersection = crop_intersection(a, box_a, b, box_b)
     union = int(a.sum()) + int(b.sum()) - intersection
     return intersection / union if union else 0.0
+
+
+def local_crop(mask, box=None):
+    """Pixel-tight crop of a full-image mask, so large photos stay cheap."""
+    x, y, w, h = box if box is not None else bbox(mask)
+    return mask[y : y + h, x : x + w]
 
 
 def tile_starts(length, size, overlap):
@@ -202,40 +217,72 @@ def lift(local, crop, shape):
 def deepest(mask):
     if not mask.any():
         raise ValueError("Cannot prompt an empty mask")
+    # Work inside the pixel-tight box: every pixel just outside it is background,
+    # so the padded crop gives exactly the full-image answer at a fraction of the cost.
     # Explicit background padding gives a meaningful center even for a full mask.
-    distance = ndi.distance_transform_edt(np.pad(mask, 1))[1:-1, 1:-1]
-    y, x = np.unravel_index(distance.argmax(), mask.shape)
-    return [int(x), int(y)]
+    x0, y0, _, _ = bbox(mask)
+    local = local_crop(mask)
+    distance = ndi.distance_transform_edt(np.pad(local, 1))[1:-1, 1:-1]
+    y, x = np.unravel_index(distance.argmax(), local.shape)
+    return [int(x) + x0, int(y) + y0]
 
 
 def fragment_fraction(mask):
+    if mask.any():
+        mask = local_crop(mask)
     components, _ = ndi.label(mask, structure=np.ones((3, 3), dtype=int))
     counts = np.bincount(components.ravel())[1:]
     return 1 - float(counts.max(initial=0)) / max(1, int(mask.sum()))
 
 
-def dedupe(candidates, threshold):
-    """Greedy same-label suppression; never makes parts/wholes disjoint."""
+def dedupe(candidates, threshold, containment=None, max_area_ratio=None):
+    """Greedy same-label suppression; never makes parts/wholes disjoint.
+
+    A later candidate matches a kept one when their IoU reaches ``threshold``, or
+    (optionally) when at least ``containment`` of the smaller mask lies inside the
+    other and their areas differ by at most ``max_area_ratio``.
+    """
     if not 0 < threshold <= 1:
         raise ValueError("IoU threshold must be in (0, 1]")
+    if containment is not None and (
+        not 0 < containment <= 1 or max_area_ratio is None or max_area_ratio < 1
+    ):
+        raise ValueError("Containment needs a fraction in (0, 1] and an area ratio >= 1")
     kept, cropped, suppressions = [], [], []
     for candidate in candidates:
         if not candidate["area"]:
             continue
-        mask = decode(candidate["rle"])
-        x, y, w, h = candidate["bbox"]
-        local = mask[y : y + h, x : x + w]
+        local = local_crop(decode(candidate["rle"]), candidate["bbox"])
+        area = candidate["area"]
         for j, previous in enumerate(kept):
             if candidate["label"] != previous["label"]:
                 continue
-            overlap = crop_iou(local, candidate["bbox"], cropped[j], previous["bbox"])
+            inter = crop_intersection(local, candidate["bbox"], cropped[j], previous["bbox"])
+            if not inter:
+                continue
+            overlap = inter / (area + previous["area"] - inter)
+            smaller, larger = sorted([area, previous["area"]])
+            inside = inter / smaller
             if overlap >= threshold:
-                match = dict(
-                    candidate_id=candidate["candidate_id"], source=candidate["source"], iou=overlap
-                )
-                previous.setdefault("matches", []).append(match)
-                suppressions.append(dict(**match, kept_candidate_id=previous["candidate_id"]))
-                break
+                rule = "iou"
+            elif (
+                containment is not None
+                and inside >= containment
+                and larger / smaller <= max_area_ratio
+            ):
+                rule = "containment"
+            else:
+                continue
+            match = dict(
+                candidate_id=candidate["candidate_id"],
+                source=candidate["source"],
+                iou=overlap,
+                contained_fraction=inside,
+                rule=rule,
+            )
+            previous.setdefault("matches", []).append(match)
+            suppressions.append(dict(**match, kept_candidate_id=previous["candidate_id"]))
+            break
         else:
             kept.append(dict(candidate))
             cropped.append(local)
@@ -332,6 +379,13 @@ def validate_config(config):
     for name in ["text_score_min", "point_quality_min", "point_stability_min"]:
         if not probability(s[name], nullable=True):
             raise ValueError(f"{name} must be finite in [0,1], or null")
+    if s["dedupe_containment"] is not None and (
+        not probability(s["dedupe_containment"]) or s["dedupe_containment"] == 0
+    ):
+        raise ValueError("dedupe_containment must be in (0,1], or null to disable it")
+    ratio = s["dedupe_containment_max_area_ratio"]
+    if not finite(ratio) or ratio < 1:
+        raise ValueError("dedupe_containment_max_area_ratio must be a finite number >= 1")
     if type(s["exclude_internal_crop_edges"]) is not bool:
         raise ValueError("exclude_internal_crop_edges must be boolean")
     r = config["refinement"]

@@ -62,9 +62,14 @@ returned hypotheses, including empty/low-score masks.
 
 Selection is a separate stage with visible gate counts: empty, area,
 text-score, point-quality, point-stability, positive-point membership, and
-internal crop-edge gates. Duplicate suppression uses exact mask IoU and a
-same-category policy. Every suppressed candidate is linked to the retained
-proposal. All raw masks remain available for a different policy.
+internal crop-edge gates. Duplicate suppression is same-category only and uses
+exact mask IoU, plus a containment rule taken from the original corn merge: a
+mask with at least 87% of its pixels inside a same-label mask at most 2.2 times
+its size is treated as another copy of it (for example a kernel and the same
+kernel with a leaky tip). IoU alone keeps both. The size cap keeps real
+parent/part pairs. Every suppressed candidate is linked to the retained
+proposal with the rule that matched. All raw masks remain available for a
+different policy (`dedupe_containment: null` turns the rule off).
 
 Scores from text detection and point-mask quality are not the same quantity.
 The implementation uses an explicit heuristic ordering—text before points,
@@ -72,6 +77,23 @@ finer crops before coarse crops, score only within that ordering—not a claim
 that the values are comparable probabilities. This is a trade-off: it favors
 semantic specificity and local edges but may prefer a fine-crop semantic error.
 Check alternative candidates in difficult regions.
+
+## Review flags
+
+Flags mark where to look first. They never delete or accept a mask. Geometry
+flags are recomputed after every stage, so a boundary update cannot leave a
+stale warning behind.
+
+| Flag | Meaning |
+|---|---|
+| `inside_larger_same_label_proposal` | ≥87% of the mask lies inside a larger proposal of the same label: often a part (wing, lid, half kernel), not another instance |
+| `outside_whole_object_proposals` | More than 15% of a main-label mask lies outside every whole-object proposal (for corn: every ear). Often background or gap fill; also fires where a parent mask is itself too tight. Only computed when whole-object proposals exist |
+| `point_semantics_unverified` | Came from an anonymous grid point, not a text prompt |
+| `single_pass_only` | No matching proposal from another crop scale |
+| `fragmented_boundary` | More than 4% of pixels lie outside the largest connected piece |
+| `tiny_instance` | Fewer than 30 pixels |
+| `no_trustworthy_neighbor_negatives`, `no_complete_refinement_crop` | Refinement was not attempted |
+| `no_stable_agreeing_refinement` | Refinement was attempted; no hypothesis passed the gates, original kept |
 
 Stability is `area(logit > +1) / area(logit > -1)`. It describes threshold
 sensitivity, not whether the mask is a corn kernel. For text detections it is
@@ -120,6 +142,8 @@ geometry, generic coverage, independent environments and stronger provenance.
 It deliberately does not promise bit-for-bit recreation of that one-off run.
 Different crop positions, precision, hardware, versions and review points may
 change the output. The protected photo and its derived masks are not included.
+See [lessons](lessons.md#reproducing-the-original-corn-run) for a step-by-step
+mapping from the original scripts to this tool and a measured rerun.
 
 For exact replay on your own image, keep the canonical photo, immutable config,
 locks, model checksum, raw candidate files, selection policy, review JSON and

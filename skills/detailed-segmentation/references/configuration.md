@@ -22,6 +22,8 @@ entire pass list. Inspect the saved complete config in `manifest.json`.
     "point_quality_min": null,
     "point_stability_min": 0.83,
     "dedupe_iou": 0.52,
+    "dedupe_containment": 0.87,
+    "dedupe_containment_max_area_ratio": 2.2,
     "exclude_internal_crop_edges": true
   },
   "budget": {"max_jobs": 256, "max_grid_points": 25000, "max_candidates": 100000}
@@ -48,8 +50,10 @@ from different model heads must not be pooled as accuracy probabilities.
 | `point_quality_min` | Point-head quality gate; default `null` because the historical cross-version audit invalidated a universal cutoff |
 | `point_stability_min` | Point mask threshold-sensitivity gate, not semantic certainty |
 | `dedupe_iou` | Exact same-category mask IoU suppression threshold |
+| `dedupe_containment` | Also match when this fraction of the smaller mask lies inside a same-label mask; `null` disables |
+| `dedupe_containment_max_area_ratio` | Containment only applies when the larger mask is at most this many times bigger, so parents and parts are kept |
 | `exclude_internal_crop_edges` | Exclude masks clipped by artificial crop boundaries, not true photo borders |
-| `refinement.crop_size` | Complete local view used for interior positives and neighbor negatives |
+| `refinement.crop_size` | Complete local view used for interior positives and neighbor negatives. `refine --limit N` takes masks in ID order (top of the image first), so a small limit refines only the upper part of the photo |
 | `refinement.quality_min`, `stability_min` | SAM 3-specific heuristic gates for boundary updates |
 | `refinement.agreement_min` | Minimum IoU between update and initial mask |
 | `refinement.supported_agreement_min` | Stricter IoU gate when original has multiple-pass support |

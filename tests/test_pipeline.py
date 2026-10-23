@@ -323,3 +323,36 @@ def test_synthetic_demo_end_to_end(tmp_path):
     assert len(read_json(run / "selected.json")["masks"]) == 77
     assert read_json(run / "export/data.json")["synthetic"] is True
     assert segment.validate_result(run)["masks"] == 77
+
+
+def test_relation_flags_mark_nested_parts_and_masks_outside_parents():
+    def obj(x, y, w, h, label):
+        mask = np.zeros((50, 50), bool)
+        mask[y : y + h, x : x + w] = True
+        return dict(
+            label=label,
+            rle=encode(mask),
+            area=int(mask.sum()),
+            bbox=[x, y, w, h],
+            source={"kind": "text", "pass_name": "fine"},
+            flags=["fragmented_boundary", "no_stable_agreeing_refinement"],
+        )
+
+    objects = [
+        obj(0, 0, 30, 30, "ear"),
+        obj(2, 2, 8, 8, "kernel"),  # inside the ear
+        obj(1, 1, 20, 20, "kernel"),  # whole kernel containing the part above
+        obj(35, 35, 8, 8, "kernel"),  # outside every ear
+    ]
+    config = {"label": "kernel", "whole_objects": [{"label": "ear", "phrase": "ear of corn"}]}
+    segment.annotate_flags(objects, config)
+    flags = [set(o["flags"]) for o in objects]
+    assert "inside_larger_same_label_proposal" in flags[1]
+    assert "inside_larger_same_label_proposal" not in flags[2]
+    assert "outside_whole_object_proposals" in flags[3]
+    assert "outside_whole_object_proposals" not in flags[1] | flags[2]
+    # Geometry flags are recomputed; process flags from earlier stages persist.
+    assert "fragmented_boundary" not in flags[1]
+    assert "no_stable_agreeing_refinement" in flags[1]
+    segment.annotate_flags(objects, {"label": "kernel", "whole_objects": []})
+    assert "outside_whole_object_proposals" not in objects[3]["flags"]
