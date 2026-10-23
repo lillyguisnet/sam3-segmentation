@@ -1,10 +1,41 @@
 ---
 name: detailed-segmentation
-description: Generate and iteratively improve detailed instance masks from a photograph using native pixels, overlapping crops, SAM 3 text and point prompts, independent visual review, and pixel-checked exports. Use for requests to segment every small object or part, such as individual corn kernels, seeds, cells, or repeated items. Includes first-machine setup, a no-model demo, bounded GPU inference, resumable raw predictions, threshold diagnostics, review sheets, guarded refinement, and an interactive viewer. Produces review proposals, never automatically verified ground truth.
+description: Outline objects in photographs with Meta's SAM 3 model, either directly or through a careful multi-step workflow. Direct mode gives quick masks from words ("dog"), example boxes, clicks or boxes on one object, or automatic "segment everything", with an overlay and native-pixel masks. Full workflow for detailed annotation of many small objects or parts, such as corn kernels, seeds, cells or repeated items: overlapping crops, resumable raw predictions, threshold diagnostics, independent visual review, guarded refinement, pixel-checked exports and an interactive viewer. Includes first-machine setup and a no-model demo. Produces model proposals, never verified ground truth.
 license: MIT
 ---
 
 # Detailed instance segmentation
+
+## Choose a mode
+
+**Direct SAM calls** (`scripts/sam.py`): the model and nothing else. Use them
+for a quick outline, a few objects, a "segment everything" pass, exploring a
+photo before a full run, or your own procedure. Read
+[direct SAM calls](references/direct-sam.md). `S` is the absolute path of this
+skill folder. The model must be installed first, with the user's approval: see
+"Install the actual model only after approval" below (the same rules apply).
+
+```sh
+SAM="uv run --locked --project $S/environments/sam3 python $S/scripts/sam.py"
+$SAM find photo.jpg --text "dog" --out out/            # every instance of words
+$SAM find photo.jpg --like 120,80,40,35 --out out/     # more like this example box
+$SAM click photo.jpg --point 300,220 --negative 330,240 --out out/   # one object
+$SAM click photo.jpg --box 250,180,120,90 --out out/   # one object from a box
+$SAM everything photo.jpg --step 32 --out out/         # automatic masks
+```
+
+Add `--region x,y,w,h` to zoom into part of the photo. Each call writes
+`out/image.png` (the pixels all coordinates refer to), a numbered overlay to look
+at, and a JSON file with scores, boxes and masks. Look at the overlay before
+reporting; direct masks are unchecked model output.
+
+**Full workflow** (the rest of this file): when the user wants every small
+object or part outlined in detail, or results someone must audit. It adds
+multi-scale crops, raw-candidate records, review flags, independent review,
+refinement and a viewer. If unsure, start direct and move to the full
+workflow when direct results miss or merge small objects.
+
+## Full workflow
 
 You are building inspectable annotations, not a pretty overlay. The task is to
 identify individual visible objects at the requested level, preserve their exact

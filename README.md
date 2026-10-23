@@ -10,6 +10,10 @@ Built from an iterative corn-kernel experiment and its subsequent audit. The
 original draft had 1,310 kernel proposals, not 1,310 verified kernels. This repo
 shares the approach and its failure lessons, not a claim of perfect annotations.
 
+It also gives agents **direct SAM 3 calls** for quick work: outline every
+instance of a phrase, objects like an example box, one object from clicks or a
+box, or everything automatically. See [direct SAM calls](skills/detailed-segmentation/references/direct-sam.md).
+
 ## What another person gets
 
 - A standard [`SKILL.md`](skills/detailed-segmentation/SKILL.md) that tells the
@@ -104,6 +108,21 @@ those settings for other images or categories.
 to refine everything, as the original run did. To repeat the original corn
 experiment, see the [stage-by-stage reproduction notes](skills/detailed-segmentation/references/lessons.md#reproducing-the-original-corn-run).
 
+### Quick outlines without the full workflow
+
+After the model setup above:
+
+```sh
+SAM="uv run --locked --project $S/environments/sam3 python $S/scripts/sam.py"
+$SAM find photo.jpg --text "dog" --out "$R/quick"
+$SAM click photo.jpg --point 300,220 --out "$R/quick"
+$SAM everything photo.jpg --step 32 --out "$R/quick"
+```
+
+Each call writes the exact image used, a numbered overlay and a JSON file of
+masks. `batch` runs many requests with one model load. Details:
+[direct SAM calls](skills/detailed-segmentation/references/direct-sam.md).
+
 ## Does it work beyond corn?
 
 The model and mask tools are not corn-specific, but the original default config
@@ -142,6 +161,7 @@ masks are included. Pixel-perfect file round trips are not pixel-perfect semanti
 ## Documentation
 
 - [Agent workflow](skills/detailed-segmentation/SKILL.md)
+- [Direct SAM calls](skills/detailed-segmentation/references/direct-sam.md)
 - [Setup and troubleshooting](skills/detailed-segmentation/references/setup.md)
 - [Method and coordinate contract](skills/detailed-segmentation/references/method.md)
 - [Configuration, budgets and run files](skills/detailed-segmentation/references/configuration.md)

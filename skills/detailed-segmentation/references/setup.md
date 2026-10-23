@@ -13,7 +13,7 @@ key. Nothing requires the author's computer or a local endpoint.
 | Supplied SAM 3 backend | Linux x86-64, Python 3.12, NVIDIA driver compatible with CUDA 12.8 wheels | Several GB of runtime/model downloads; gated Hugging Face access |
 | Windows model inference | WSL2 Linux and an NVIDIA driver that supports WSL CUDA | Same model environment; do not install a second Linux kernel driver inside WSL |
 | macOS/MPS | Base tools work; this backend has no MPS implementation | Use an approved Linux GPU host or implement and validate an adapter |
-| CPU model inference | Linux model environment; `--device cpu --precision fp32` | Same gated weights; potentially very slow, not throughput-tested |
+| CPU model inference | Linux model environment; `--device cpu` (BF16 on the processor) | Same gated weights; very slow. The old FP32 path crashed; the BF16 path no longer hits that error but has not been run to completion |
 | Hosted visual review | Optional official provider application/API | User's own permitted access and explicit photo-upload consent |
 
 The portable wrapper is smoke-tested on an RTX 3090, not every GPU or OS.
@@ -129,8 +129,9 @@ larger configuration. Loading a model is not proof its masks are semantically ri
 - **Out of memory:** stop only this run, reduce `--batch-size` to 8 or 1 and use a
   new run if runtime identity changes. Do not resize the source secretly or kill
   other users' processes. Smaller crops can change the object scale; record them.
-- **BF16 unsupported:** use `--precision fp32` and smaller batches. This changes
-  runtime identity and can change predictions; do not present it as bit-identical.
+- **BF16 unsupported:** the pinned SAM 3 code casts some layers to BF16 itself, so
+  FP32 is not an option (an FP32 run fails with a dtype error). Use a GPU with
+  BF16 support (NVIDIA Ampere or newer) or `--device cpu`.
 - **Missing SciPy/Pillow/pycocotools:** use the declared environment, not ad hoc
   installs in an unrelated global environment.
 - **Build fails on non-Linux or ARM:** the CUDA model lock targets Linux NVIDIA.

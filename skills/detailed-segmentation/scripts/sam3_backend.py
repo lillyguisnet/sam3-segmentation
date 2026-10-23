@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import importlib.metadata
 import json
@@ -74,22 +73,24 @@ class Sam3Backend:
         self.batch_size = batch_size
         if batch_size < 1:
             raise ValueError("Batch size must be positive")
+        if precision != "bf16":
+            # The pinned SAM 3 code casts its fused MLP layers to BF16 itself
+            # (sam3/perflib/fused.py), so a true FP32 run fails with a dtype error.
+            raise ValueError(
+                "SAM 3 runs part of its network in BF16 internally; only --precision bf16 works"
+            )
         if device.startswith("cuda"):
             if not torch.cuda.is_available():
                 raise RuntimeError(
                     "CUDA is unavailable. Run doctor in the model environment; check the NVIDIA driver."
                 )
             torch.cuda.set_device(device)
-            if precision == "bf16" and not torch.cuda.is_bf16_supported():
+            if not torch.cuda.is_bf16_supported():
                 raise RuntimeError(
-                    "This GPU does not support BF16; use --precision fp32 and a smaller batch."
+                    "This GPU does not support BF16, which the pinned SAM 3 code requires."
                 )
         elif device != "cpu":
             raise ValueError("Validated device paths are cpu and cuda:N; MPS is not implemented")
-        elif precision != "fp32":
-            raise ValueError(
-                "CPU mode requires --precision fp32 (very slow; no throughput promise)"
-            )
         torch.set_num_threads(8)
         torch.manual_seed(seed)
         torch.backends.cuda.matmul.allow_tf32 = True
@@ -190,9 +191,9 @@ class Sam3Backend:
         self.state = None
 
     def context(self):
-        if self.device.startswith("cuda") and self.precision == "bf16":
-            return self.torch.autocast("cuda", dtype=self.torch.bfloat16)
-        return contextlib.nullcontext()
+        # BF16 autocast on both GPU and CPU: the upstream fused layers emit BF16.
+        device_type = "cuda" if self.device.startswith("cuda") else "cpu"
+        return self.torch.autocast(device_type, dtype=self.torch.bfloat16)
 
     def image_state(self, image):
         key = (image.size, hashlib.sha256(image.tobytes()).hexdigest())
