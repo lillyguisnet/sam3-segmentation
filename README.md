@@ -3,6 +3,8 @@
 [![Test](https://github.com/lillyguisnet/sam3-segmentation/actions/workflows/test.yml/badge.svg)](https://github.com/lillyguisnet/sam3-segmentation/actions/workflows/test.yml)
 [![skills.sh](https://skills.sh/b/lillyguisnet/sam3-segmentation)](https://skills.sh/lillyguisnet/sam3-segmentation)
 
+> This was mostly written by Opus 5.5 and not thoroughly checked by a human. It works on my machine, but haven't tested it elsewhere.
+
 **An agent skill that outlines objects in photos with Meta's SAM 3, run on your
 own NVIDIA GPU, and keeps everything it produces checkable.**
 
@@ -56,15 +58,21 @@ in Codex). For example:
 | To... | You need |
 |---|---|
 | Run the model | Linux (or Windows WSL2) with an **NVIDIA GPU** (12-24 GB memory suggested), `uv`, about **11 GB** of disk, and your own accepted access to [facebook/sam3](https://huggingface.co/facebook/sam3) on Hugging Face |
-| Try the demo, review and export tools | Any machine with [`uv`](https://docs.astral.sh/uv/getting-started/installation/); no GPU, model or account |
+| See a demo of the viewer and file formats, on generated shapes (no segmentation) | Any machine with [`uv`](https://docs.astral.sh/uv/getting-started/installation/); no GPU, model or account |
 
-**CPU and Apple GPU inference are not implemented.** The agent asks before
+**Without an NVIDIA GPU, the skill cannot segment anything:** the model does not
+run on CPU or Apple GPUs. The agent asks before
 installing anything. It never asks for your Hugging Face token: you log in
 yourself with `hf auth login`. The Python environments are created outside the
 skill folder (in `~/.local/share/sam3-segmentation/`), so updates and several
 installed copies reuse them.
 
-## Try it without a GPU
+## Demo without a GPU (no segmentation)
+
+The model needs an NVIDIA GPU. Without one, you can only run a **demo**: it
+draws generated shapes, runs the review and export tools on them, and opens the
+viewer, so you can see what the results look like before installing anything
+large. It does not segment your photos and does not use the model.
 
 ```sh
 S=~/.claude/skills/sam3-segmentation     # wherever the skill was installed
@@ -72,8 +80,7 @@ sh "$S/scripts/run" base segment.py demo --out /tmp/sam3-demo
 sh "$S/scripts/run" base python -m http.server 8000 --bind 127.0.0.1 --directory /tmp/sam3-demo/export
 ```
 
-Open http://127.0.0.1:8000 to see the viewer on generated shapes. This checks the
-tools and the viewer, **not** the model.
+Open http://127.0.0.1:8000 to see the viewer on the generated shapes.
 
 ## Does it work?
 
