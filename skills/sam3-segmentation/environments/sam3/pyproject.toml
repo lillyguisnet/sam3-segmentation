@@ -1,0 +1,24 @@
+[project]
+name = "sam3-segmentation-model"
+version = "0.1.0"
+description = "Isolated, pinned SAM 3 image inference environment for Linux NVIDIA systems"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "torch==2.10.0", "torchvision",
+  "sam3 @ git+https://github.com/facebookresearch/sam3.git@0570b3a5be9c4e694f23d85232fb55f4a6f1f7fc",
+  "numpy>=1.26,<2", "scipy>=1.15,<2", "pillow>=11,<13",
+  "opencv-python-headless", "huggingface_hub", "einops",
+  "pycocotools==2.0.11", "psutil", "setuptools<81", "filelock>=3.19,<4"
+]
+
+[tool.uv]
+package = false
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }

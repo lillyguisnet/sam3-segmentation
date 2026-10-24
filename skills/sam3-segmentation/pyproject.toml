@@ -1,0 +1,12 @@
+[project]
+name = "sam3-segmentation-tools"
+version = "0.1.0"
+description = "Portable proposal, review and export tools for the sam3-segmentation agent skill"
+requires-python = ">=3.12,<3.14"
+dependencies = ["numpy>=1.26,<3", "scipy>=1.15,<2", "pillow>=11,<13", "pycocotools==2.0.11", "filelock>=3.19,<4"]
+
+[dependency-groups]
+dev = ["pytest>=8,<10", "ruff>=0.12,<1", "pyyaml>=6,<7"]
+
+[tool.uv]
+package = false

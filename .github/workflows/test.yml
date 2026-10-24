@@ -1,15 +1,43 @@
-name: Test portable skill
+name: Test
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   base-tools:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python: ["3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.13.4"
+          python-version: ${{ matrix.python }}
+      - run: uv sync --locked --project skills/sam3-segmentation --group dev
+      - run: uv run --locked --project skills/sam3-segmentation --group dev ruff check skills/sam3-segmentation/scripts tests install.py docs evals
+      - run: uv run --locked --project skills/sam3-segmentation --group dev ruff format --check skills/sam3-segmentation/scripts tests install.py docs evals
+      - run: uv run --locked --project skills/sam3-segmentation --group dev pytest tests
+      - name: Demo through the launcher, from a copied skill
+        run: |
+          python3 install.py --dest "$RUNNER_TEMP/skills/sam3-segmentation"
+          sh "$RUNNER_TEMP/skills/sam3-segmentation/scripts/run" base segment.py demo --out "$RUNNER_TEMP/demo"
+          test -f "$RUNNER_TEMP/demo/export/index.html"
+          test ! -e "$RUNNER_TEMP/skills/sam3-segmentation/.venv"
+
+  skill-format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v6
         with:
           version: "0.13.4"
-          python-version: "3.12"
-      - run: uv sync --locked --project skills/detailed-segmentation --group dev
-      - run: uv run --locked --project skills/detailed-segmentation --group dev ruff check skills/detailed-segmentation/scripts tests install.py
-      - run: uv run --locked --project skills/detailed-segmentation --group dev pytest tests
-      - run: uv run --locked --project skills/detailed-segmentation python skills/detailed-segmentation/scripts/segment.py demo --out runs/demo
+      - name: Agent Skills reference validator
+        run: uvx --from "git+https://github.com/agentskills/agentskills@69ef37e9424c0a7ea9dd2293b559e43ec8176379#subdirectory=skills-ref" skills-ref validate skills/sam3-segmentation
+      - name: Shell scripts
+        run: shellcheck skills/sam3-segmentation/scripts/run evals/fixtures/*.sh docs/hero/make.sh
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Claude Code plugin manifest
+        run: npx --yes @anthropic-ai/claude-code plugin validate --strict .

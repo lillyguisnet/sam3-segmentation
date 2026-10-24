@@ -1,0 +1,4 @@
+interface:
+  display_name: "SAM 3 Segmentation"
+  short_description: "Outline and mask objects in photos with SAM 3"
+  default_prompt: "Use $sam3-segmentation to outline every visible object of interest in this photo, then show me the overlay and tell me what is uncertain."

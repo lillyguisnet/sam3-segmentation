@@ -1,193 +1,151 @@
-# Detailed Segmentation Skill
+# sam3-segmentation
 
-**Give an agent a reproducible way to build detailed, inspectable instance masks—not just a convincing overlay.**
+**An agent skill that outlines objects in photos with Meta's SAM 3, run on your
+own NVIDIA GPU, and keeps everything it produces checkable.**
 
-A self-contained agent skill plus working tools for multi-scale SAM 3 inference,
-raw-candidate preservation, threshold diagnostics, independent visual review,
-guarded boundary refinement and pixel-checked exports.
+![A CC0 photo of corn beside the skill's 1,397 kernel outlines, one colour each](docs/hero/hero.jpg)
 
-Built from an iterative corn-kernel experiment and its subsequent audit. The
-original draft had 1,310 kernel proposals, not 1,310 verified kernels. This repo
-shares the approach and its failure lessons, not a claim of perfect annotations.
+*Unreviewed output of the full workflow's model steps on a
+[CC0 photo](https://commons.wikimedia.org/wiki/File:Corn_ready_for_removing_kernels_from_cob.jpg):
+1,397 kernel and 11 ear proposals, about 3 minutes on one RTX 3090.
+[How it was made](docs/hero/make.sh).*
 
-It also gives agents **direct SAM 3 calls** for quick work: outline every
-instance of a phrase, objects like an example box, one object from clicks or a
-box, or everything automatically. See [direct SAM calls](skills/detailed-segmentation/references/direct-sam.md).
+Ask your coding agent (Claude Code, Codex, Cursor, Pi, OpenCode and about 75
+others) to "outline every kernel", "cut out the dog" or "count the seeds", and
+this skill gives it the model, the commands and the rules to do it properly:
 
-## What another person gets
+- **Quick calls:** every instance of a phrase ("all the jars"), more objects like
+  an example box, one object from a click or a box, or "segment everything".
+- **A careful workflow** for many small objects or parts (kernels, seeds, cells,
+  insects): overlapping close-up crops, every raw candidate saved, score checks,
+  review sheets and flags, recorded and reversible review decisions, boundary
+  refinement, PNG and COCO RLE exports, and a zoomable viewer.
+- **Honest output:** masks are reported as model proposals, never as verified
+  ground truth, with what is uncertain listed.
 
-- A standard [`SKILL.md`](skills/detailed-segmentation/SKILL.md) that tells the
-  agent what to do, when to inspect, when to stop, and how to report uncertainty.
-- First-machine setup: no existing model service, private paths, dataset,
-  provider subscription or API key assumed.
-- A small **CPU-only synthetic demo** before any model download.
-- Separate locked base and Linux/NVIDIA SAM 3 environments; pinned code/weights.
-- Seeded image selection, explicit orientation, generic overlapping crops and
-  request budgets checked before loading weights.
-- Resumable raw hypotheses saved before downstream filters, score sweeps,
-  duplicate provenance, native coordinates and regression-tested pixel overlap.
-- Coordinate-labelled review sheets and a provider-independent review schema.
-- An interactive viewer and individual PNG / COCO-RLE / full-proposal exports.
-- No automatic “ground truth” labels or changes to existing accepted annotations.
+## Install
 
-## Install into your agent
-
-Clone this repository, then copy the **whole skill**, not just `SKILL.md`:
+Pick one. Each installs the same skill folder.
 
 ```sh
-python3 install.py --target codex   # ~/.agents/skills/detailed-segmentation
-# or --target claude, --target pi, or --dest /your/skills/detailed-segmentation
+# Any agent (Claude Code, Codex, Cursor, OpenCode, Gemini CLI, ...). Needs Node.js 22+.
+npx skills add lillyguisnet/sam3-segmentation        # add -g for every project
+
+# Claude Code plugin, with updates (Claude Code 2.1.275 or later):
+/plugin install sam3-segmentation --marketplace lillyguisnet/sam3-segmentation
+
+# No Node.js: copy the folder yourself (--target claude, codex or pi)
+git clone https://github.com/lillyguisnet/sam3-segmentation
+python3 sam3-segmentation/install.py --target claude
 ```
 
-The installer refuses to overwrite an existing skill and does not install
-models, read credentials, or alter agent settings. Use `--dry-run` to inspect it.
-The copied folder is self-contained; the repository need not remain at its old
-location. A custom destination must keep the directory name `detailed-segmentation`,
-matching the [Agent Skills specification](https://agentskills.io/specification). For other agents, point them at the skill file and retain its sibling
-scripts/references/environments. Skill discovery varies by agent/version.
+Then ask your agent in plain words. The skill loads by itself when the request
+fits; you can also name it (`/sam3-segmentation` in Claude Code, where a plugin
+install shows it as `/sam3-segmentation:sam3-segmentation`, or `$sam3-segmentation`
+in Codex). For example:
 
-Example request:
+> Outline every visible kernel in corn.jpg, and the whole ears separately. Keep
+> overlapping levels, check every region, and tell me what is uncertain. Ask me
+> before any large download.
 
-> Use the detailed-segmentation skill on this photo. Segment each visible corn
-> kernel and the whole ears separately. Keep overlapping levels, inspect every
-> region, and leave unresolved silk/occluded fragments explicit. Check setup and
-> get my approval before large downloads or hosted photo review. Deliver a
-> zoomable viewer, binary masks, provenance and an honest review draft.
+## What you need
 
-## Try the no-account demo
+| To... | You need |
+|---|---|
+| Run the model | Linux (or Windows WSL2) with an **NVIDIA GPU** (12-24 GB memory suggested), `uv`, about **11 GB** of disk, and your own accepted access to [facebook/sam3](https://huggingface.co/facebook/sam3) on Hugging Face |
+| Try the demo, review and export tools | Any machine with [`uv`](https://docs.astral.sh/uv/getting-started/installation/); no GPU, model or account |
 
-Install [uv](https://docs.astral.sh/uv/getting-started/installation/) and Git if
-needed. From the repository root:
+**CPU and Apple GPU inference are not implemented.** The agent asks before
+installing anything. It never asks for your Hugging Face token: you log in
+yourself with `hf auth login`. The Python environments are created outside the
+skill folder (in `~/.local/share/sam3-segmentation/`), so updates and several
+installed copies reuse them.
+
+## Try it without a GPU
 
 ```sh
-export S="$PWD/skills/detailed-segmentation"
-export R="$PWD/runs"
-uv python install 3.12
-uv sync --locked --project "$S"
-uv run --locked --project "$S" python "$S/scripts/segment.py" doctor
-uv run --locked --project "$S" python "$S/scripts/segment.py" demo --out "$R/demo"
-uv run --locked --project "$S" python -m http.server 8000 --bind 127.0.0.1 --directory "$R/demo/export"
+S=~/.claude/skills/sam3-segmentation     # wherever the skill was installed
+sh "$S/scripts/run" base segment.py demo --out /tmp/sam3-demo
+sh "$S/scripts/run" base python -m http.server 8000 --bind 127.0.0.1 --directory /tmp/sam3-demo/export
 ```
 
-Open **http://127.0.0.1:8000**. This checks the workflow and viewer using synthetic
-shapes, **not model segmentation quality**. No GPU, model weights or credentials.
+Open http://127.0.0.1:8000 to see the viewer on generated shapes. This checks the
+tools and the viewer, **not** the model.
 
-## Use a real photograph
+## Does it work?
 
-Read [setup](skills/detailed-segmentation/references/setup.md) first. The supplied
-model path targets **Linux x86-64 + NVIDIA**, including Windows through WSL2.
-Base tools also work without a GPU. **CPU and macOS/MPS model inference are not implemented.**
-Allow substantial disk/GPU headroom; obtain download approval and accept Meta's
-gated SAM 3 terms yourself. Never send tokens to an agent in chat.
+**On corn, with six different agents.** Six models (GPT-6 Luna, GPT-6.1 Sol,
+GPT-6 Astra, Claude Haiku 5.5, Sonnet 5 and Opus 5.5) each ran the full workflow
+alone, with only the skill and a corn photo. Each finished with a full set of
+kernel proposals:
 
-```sh
-uv sync --locked --project "$S/environments/sam3"
-uv run --locked --project "$S/environments/sam3" hf auth login
-# Optional real-model API check on generated shapes, before using a photograph:
-uv run --locked --project "$S/environments/sam3" python "$S/scripts/model_smoke.py" --out "$R/model-check"
+| Agent | Time | Kernel proposals | Removed after review | First run's kernels also found |
+|---|---:|---:|---:|---:|
+| Luna | 8 min | 1,350 | 0 | 98.6% |
+| Sol | 24 min | 1,315 | 45 | 97.2% |
+| Astra | 30 min | 1,319 | 41 | 97.6% |
+| Haiku | 40 min | 1,244 | 111 | 92.4% |
+| Sonnet | 42 min | 1,321 | 37 | 97.2% |
+| Opus | 40 min | 1,319 | 41 | 97.8% |
 
-uv run --locked --project "$S" python "$S/scripts/segment.py" prepare /path/corn.jpg \
-  --out "$R/corn" --config "$S/configs/corn-starting-point.json" --orientation raw
-uv run --locked --project "$S" python "$S/scripts/segment.py" plan "$R/corn"
-uv run --locked --project "$S/environments/sam3" python "$S/scripts/segment.py" infer "$R/corn" --device cuda:0
-uv run --locked --project "$S" python "$S/scripts/segment.py" audit "$R/corn"
-uv run --locked --project "$S" python "$S/scripts/segment.py" select "$R/corn"
-uv run --locked --project "$S" python "$S/scripts/segment.py" review-sheets "$R/corn"
-# Inspect original/overlay pairs, validate independent review points, diagnose mistakes.
-uv run --locked --project "$S/environments/sam3" python "$S/scripts/segment.py" refine "$R/corn" --device cuda:0 --limit 200
-uv run --locked --project "$S" python "$S/scripts/segment.py" validate "$R/corn"
-uv run --locked --project "$S" python "$S/scripts/segment.py" export "$R/corn"
-```
+"First run's kernels also found" means at least half of the outline overlaps an
+outline from the run the skill was built from (1,310 kernels). That run was also
+made with SAM 3, so this measures agreement between agents, **not accuracy**: no
+person has checked these outlines. Luna skipped the review; Haiku removed too
+much, including real kernels. The same six models with no tools, asked to trace
+the kernels by looking, returned between 0 and 1,084 shapes that did not follow
+the kernels. That photo is not cleared for sharing, so it is not included.
 
-Serve `runs/corn/export` the same way as the demo. Repeat inference to resume
-completed requests; a changed model/runtime belongs in a new run. Do not expect
-the historical count: different images, crop grids and settings change outputs.
-The example area limits assume small corn-image pixels; inspect before reusing
-those settings for other images or categories.
-`--limit 200` refines only the first 200 masks from the top of the image; omit it
-to refine everything, as the original run did. To repeat the original corn
-experiment, see the [stage-by-stage reproduction notes](skills/detailed-segmentation/references/lessons.md#reproducing-the-original-corn-run).
+**Beyond corn.** Trials on a dog, jars, insects, mushrooms and cattle produced
+useful outlines, but also background mistakes and parts counted as whole
+objects. [Report, with failures](docs/cross-domain-trials.md).
 
-### Quick outlines without the full workflow
+**Does the agent use it, and use it well?** Automated tests with Claude Haiku,
+Sonnet and Opus 5.5: Sonnet and Opus picked the skill for all 10 kinds of
+request it should handle and none of the 10 near-misses (customer segmentation,
+CT scans, video, OCR...); Haiku sometimes counted by eye instead. With the skill,
+agents told a Mac user the truth about GPU support, refused to use a pasted
+token, and stated the 11 GB download before asking to install; without it they
+mostly did not. [Evals and full results](evals/README.md).
 
-After the model setup above:
+## Limitations
 
-```sh
-SAM="uv run --locked --project $S/environments/sam3 python $S/scripts/sam.py"
-$SAM find photo.jpg --text "dog" --out "$R/quick"
-$SAM click photo.jpg --point 300,220 --out "$R/quick"
-$SAM everything photo.jpg --step 32 --out "$R/quick"
-```
-
-Each call writes the exact image used, a numbered overlay and a JSON file of
-masks. `batch` runs many requests with one model load. Details:
-[direct SAM calls](skills/detailed-segmentation/references/direct-sam.md).
-
-## Does it work beyond corn?
-
-The model and mask tools are not corn-specific, but the original default config
-still is. Use the complete [non-corn example profiles](skills/detailed-segmentation/configs/non-corn/)
-rather than changing only the object name.
-
-We ran five qualitative trials on a dog, jars, insects, mushrooms and cattle.
-Useful masks appeared in every case, but so did background false positives,
-part/whole duplicates and missed fine boundaries. More crops were **not always
-better**. These are review proposals, not a general automatic annotation result.
-See the [full trial report](docs/cross-domain-trials.md), including failures and
-a diagnostic score sweep. No private photos or mask sets are in the repository.
-
-## The approach, and its limits
-
-1. Inventory visible objects and nesting **before** inspecting predictions.
-2. Freeze canonical pixels and native coordinates. Never invent resolution.
-3. Compare full-image, coarse and fine views. Specify the intended object level.
-4. Preserve raw candidates before gates; inspect score distributions and misses.
-5. Match same-category duplicates by exact mask IoU or near-total containment of a
-   similar-sized mask; retain parent/part overlap and flag likely parts.
-6. Audit every region independently. Validate coordinates and then inspect them.
-7. Refine with positive/neighbor-negative prompts; preserve rejected alternatives.
-   Remove inspected mistakes only through recorded, reversible decisions with reasons.
-8. Validate file/pixel consistency and export everything as an unaccepted draft.
-
-The [later audit](skills/detailed-segmentation/references/lessons.md) found that
-prompt ambiguity and score filtering strongly affected apparent SAM-version
-rankings, and corrected a last-pixel overlap bug. The skill incorporates those
-lessons. More masks do not establish higher accuracy; identical confidence
-cutoffs do not imply equivalent model selection. A second agent is not an oracle.
-
-This is **not** a model benchmark, general automatic annotation guarantee,
-medical annotation tool, or human acceptance interface. No independent reference
-masks are included. Pixel-perfect file round trips are not pixel-perfect semantics.
+- Outputs are proposals. To claim accuracy, compare against masks a person has
+  checked, never against these drafts.
+- The skill does not yet say when a review is finished, which reviewer to use,
+  or stop an agent from removing many proposals unseen. See the
+  [changelog](CHANGELOG.md).
+- Small objects need the full workflow; a quick call on a whole photo can miss
+  them entirely.
+- Not for video, medical images, or classifying and editing pictures.
 
 ## Documentation
 
-- [Agent workflow](skills/detailed-segmentation/SKILL.md)
-- [Direct SAM calls](skills/detailed-segmentation/references/direct-sam.md)
-- [Setup and troubleshooting](skills/detailed-segmentation/references/setup.md)
-- [Method and coordinate contract](skills/detailed-segmentation/references/method.md)
-- [Configuration, budgets and run files](skills/detailed-segmentation/references/configuration.md)
-- [Independent review protocol and JSON](skills/detailed-segmentation/references/review.md)
-- [Historical mistakes and lessons](skills/detailed-segmentation/references/lessons.md)
-- [Five non-corn trials, with failures](docs/cross-domain-trials.md)
-- [Testing and reproducibility status](TESTING.md)
+- [The agent's instructions](skills/sam3-segmentation/SKILL.md)
+- [Quick SAM calls](skills/sam3-segmentation/references/direct-sam.md)
+- [Setup and troubleshooting](skills/sam3-segmentation/references/setup.md)
+- [Method and coordinates](skills/sam3-segmentation/references/method.md)
+- [Configuration, budgets and run files](skills/sam3-segmentation/references/configuration.md)
+- [Review protocol](skills/sam3-segmentation/references/review.md)
+- [Lessons from earlier mistakes](skills/sam3-segmentation/references/lessons.md)
+- [Testing and reproducibility](TESTING.md) · [Evals](evals/README.md) · [Changelog](CHANGELOG.md)
 
 ## Development
 
 ```sh
-uv sync --locked --project skills/detailed-segmentation --group dev
-uv run --locked --project skills/detailed-segmentation --group dev pytest tests
-uv run --locked --project skills/detailed-segmentation --group dev ruff check skills/detailed-segmentation/scripts tests install.py
+uv sync --locked --project skills/sam3-segmentation --group dev
+uv run --locked --project skills/sam3-segmentation --group dev pytest tests
+uv run --locked --project skills/sam3-segmentation --group dev ruff check skills/sam3-segmentation/scripts tests install.py
+claude plugin validate --strict .
 ```
 
-Ordinary tests need no weights, GPU, provider accounts or network inference.
-Generated runs, local environments and secrets are excluded from git. CI covers
-the base tools; real-model and browser smoke checks are documented separately.
+The tests need no GPU, model, account or network inference. Keep the skill
+folder self-contained: it must work when copied anywhere on its own.
 
 ## Licence and privacy
 
-[MIT](LICENSE) for this repository's original skill/tools. SAM code, gated
-weights, dependency licences, image rights, annotation rights and provider terms
-are separate. No weights, private photograph, private masks or credentials are
-included. Review current terms before publishing annotations or training models.
-`export --omit-image` excludes the source photograph, not the need for rights
-review. Optional cloud review requires explicit photo-upload permission.
+[MIT](LICENSE) for this repository. SAM 3's code and weights are Meta's, under
+their own terms, and are downloaded by you, not included here. Photo, annotation
+and provider rights are separate questions. This project is not affiliated with
+Meta. No private photos, masks, weights or credentials are in this repository;
+the test photos are public domain or CC0 ([credits](evals/fixtures/CREDITS.md)).

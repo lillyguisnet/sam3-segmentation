@@ -1,0 +1,15 @@
+{
+  "name": "sam3-segmentation",
+  "description": "The sam3-segmentation agent skill",
+  "owner": {
+    "name": "Aurélie Guisnet",
+    "url": "https://github.com/lillyguisnet"
+  },
+  "plugins": [
+    {
+      "name": "sam3-segmentation",
+      "source": "./",
+      "description": "Outline, mask or count objects in images with Meta's SAM 3 on a local NVIDIA GPU, directly or through an auditable review workflow."
+    }
+  ]
+}

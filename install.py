@@ -5,11 +5,11 @@ import argparse
 import shutil
 from pathlib import Path
 
-SOURCE = Path(__file__).resolve().parent / "skills" / "detailed-segmentation"
+SOURCE = Path(__file__).resolve().parent / "skills" / "sam3-segmentation"
 TARGETS = {
-    "codex": Path("~/.agents/skills/detailed-segmentation"),
-    "claude": Path("~/.claude/skills/detailed-segmentation"),
-    "pi": Path("~/.pi/agent/skills/detailed-segmentation"),
+    "codex": Path("~/.agents/skills/sam3-segmentation"),
+    "claude": Path("~/.claude/skills/sam3-segmentation"),
+    "pi": Path("~/.pi/agent/skills/sam3-segmentation"),
 }
 
 
@@ -17,7 +17,7 @@ def install(destination, dry_run=False):
     destination = Path(destination).expanduser().absolute()
     if destination.name != SOURCE.name:
         raise ValueError(
-            "The skill directory must be named detailed-segmentation to match its frontmatter"
+            "The skill directory must be named sam3-segmentation to match its frontmatter"
         )
     if destination.exists() or destination.is_symlink():
         raise FileExistsError(f"Refusing to overwrite existing skill: {destination}")

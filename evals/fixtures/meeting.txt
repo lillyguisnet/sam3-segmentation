@@ -1,0 +1,6 @@
+Ana: Let's start with the budget. We are 8% over on hosting this quarter.
+Ben: Mostly the new image pipeline. I can move the batch jobs to night hours.
+Ana: Good. Next, hiring. We still need one backend engineer.
+Chloe: Two candidates are in final interviews this week.
+Ana: Last item, the office move. The new lease starts in March.
+Ben: Movers are booked for the last weekend of February.

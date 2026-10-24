@@ -1,0 +1,70 @@
+#!/bin/sh
+# Run a command in one of this skill's locked Python environments.
+#
+#   sh scripts/run base  segment.py doctor             base tools (no PyTorch, no GPU)
+#   sh scripts/run model sam.py find photo.jpg ...     SAM 3 (Linux + NVIDIA GPU)
+#   sh scripts/run model sync                          install or update an environment only
+#   sh scripts/run model path                          print where an environment lives
+#   sh scripts/run base  python -m http.server 8000    any other command in an environment
+#
+# A name ending in .py runs that file from scripts/. Relative paths in the
+# arguments are resolved from the current directory, as usual.
+#
+# The environments live outside the skill folder, so an installed skill stays
+# small, can be read-only, and survives updates or several installed copies
+# without rebuilding PyTorch. Location:
+#   $SAM3_SEGMENTATION_HOME/envs/<base|model>-<lock checksum>
+# where SAM3_SEGMENTATION_HOME defaults to $XDG_DATA_HOME/sam3-segmentation,
+# that is ~/.local/share/sam3-segmentation. A changed lock file gets a new
+# environment; delete old ones under envs/ to reclaim space.
+set -eu
+
+skill=$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd -P)
+
+usage() {
+    echo "usage: sh scripts/run {base|model} {sync|path|SCRIPT.py|COMMAND} [ARGS...]" >&2
+    exit 2
+}
+
+[ "$#" -ge 2 ] || usage
+case $1 in
+    base) project=$skill ;;
+    model) project=$skill/environments/sam3 ;;
+    *) usage ;;
+esac
+name=$1
+shift
+
+data_home=${XDG_DATA_HOME:-${HOME:?HOME is not set}/.local/share}
+home=${SAM3_SEGMENTATION_HOME:-$data_home/sam3-segmentation}
+checksum=$(cat "$project/pyproject.toml" "$project/uv.lock" | cksum | cut -d' ' -f1)
+UV_PROJECT_ENVIRONMENT=$home/envs/$name-$checksum
+export UV_PROJECT_ENVIRONMENT
+
+if [ "$1" = path ]; then
+    printf '%s\n' "$UV_PROJECT_ENVIRONMENT"
+    exit 0
+fi
+
+if ! command -v uv >/dev/null 2>&1; then
+    echo "error: uv is not installed. Install it from" >&2
+    echo "https://docs.astral.sh/uv/getting-started/installation/ (see references/setup.md)." >&2
+    exit 127
+fi
+
+if [ "$1" = sync ]; then
+    shift
+    exec uv sync --locked --no-dev --project "$project" "$@"
+fi
+
+case $1 in
+    /*.py) script=$1 ;;
+    *.py) script=$skill/scripts/$1 ;;
+    *) exec uv run --locked --no-dev --project "$project" "$@" ;;
+esac
+shift
+if [ ! -f "$script" ]; then
+    echo "error: no such script: $script" >&2
+    exit 2
+fi
+exec uv run --locked --no-dev --project "$project" python "$script" "$@"

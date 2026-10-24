@@ -1,6 +1,6 @@
 # Five non-corn trials
 
-Read the [full report, configurations and limitations](../skills/detailed-segmentation/references/cross-domain-trials.md).
+Read the [full report, configurations and limitations](../skills/sam3-segmentation/references/cross-domain-trials.md).
 It lives inside the self-contained skill so installed copies retain the lessons.
 
 The same SAM 3 implementation was run on a dog, jars, pinned insects, mushroom

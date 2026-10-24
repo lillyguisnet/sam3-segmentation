@@ -1,5 +1,35 @@
 # Testing and reproducibility
 
+## Release checks for 0.1.0 — 24 October 2026
+
+- **150 CPU tests passed** (Python 3.12, Linux). New: the skill header parsed by a
+  strict YAML parser and checked against the Agent Skills rules, versions that
+  must agree across `SKILL.md`, the plugin manifest, both `pyproject.toml` files
+  and the changelog, and the `scripts/run` launcher (environment location, lock
+  checksum, bad arguments, and a real `doctor` run that writes nothing into the
+  skill folder).
+- `skills-ref validate` (the Agent Skills reference validator) and
+  `claude plugin validate --strict` passed. The previous header failed the
+  reference validator, and Pi's strict YAML parser would have skipped the skill.
+- The model environment was rebuilt through `scripts/run` outside the skill
+  folder (`~/.local/share/sam3-segmentation/envs/`). The generated-shape model
+  control gave the same numbers as before: batch/single IoU median **1.000**,
+  minimum **0.922**. A direct `sam.py find "red circle"` call on generated shapes
+  returned the two circles and not the square, with pixel-exact boxes.
+- The full workflow's model steps (no review) on a 960 x 640
+  [CC0 corn photo](https://commons.wikimedia.org/wiki/File:Corn_ready_for_removing_kernels_from_cob.jpg)
+  produced 1,397 kernel and 11 ear proposals and 594 boundary updates: about 2
+  minutes of inference and 1 of refinement on one RTX 3090. The default corn
+  budget refused this larger photo before loading weights, as intended; the
+  run used the larger budget in [docs/hero/config.json](docs/hero/config.json). A
+  quick `find "corn kernel"` on the whole photo returned **no** masks: small
+  objects need the crops of the full workflow.
+- Agent evals with Claude Haiku, Sonnet and Opus 5.5: see
+  [evals/README.md](evals/README.md).
+- Six agents (GPT-6 Luna, GPT-6.1 Sol, GPT-6 Astra, Claude Haiku 5.5, Sonnet 5
+  and Opus 5.5), each alone with the skill and the original corn photo, ran the
+  full workflow on 23 October; results are summarised in the [README](README.md#does-it-work).
+
 ## Checks performed locally — 23 October 2026
 
 - The original **106 CPU tests passed** on Linux with Python **3.12.12 and 3.13.13**.
@@ -22,7 +52,7 @@
 - A later local rerun of the **whole corn workflow on the original photograph**
   (copied skill, fresh environments, RTX 3090, BF16) produced 1,350 kernel and 19
   ear proposals with 879 boundary updates; review sheets, validation and export
-  passed. Only scalar counts are recorded, in the [reproduction notes](skills/detailed-segmentation/references/lessons.md#reproducing-the-original-corn-run).
+  passed. Only scalar counts are recorded, in the [reproduction notes](skills/sam3-segmentation/references/lessons.md#reproducing-the-original-corn-run).
   No photo or mask from that run is in the repository.
 - A real corn run from a freshly installed copy, with environments outside the
   skill folder, recorded 5 exclusions and 1 uncertain mark before refinement.
@@ -43,8 +73,7 @@ photographs, mask pools, credentials or GPU UUIDs. The actual private run record
 remain excluded from the repository.
 
 A new-account Hugging Face acceptance flow was **not** automated or tested; the
-model checks reused an authorized local checkpoint. The repository has not been
-published to GitHub, so no GitHub-hosted CI run has occurred. Windows/macOS base
+model checks reused an authorized local checkpoint. Windows/macOS base
 compatibility were not tested here. CPU and MPS model inference are not implemented.
 
 Known warnings: pycocotools 2.0.11 emits an array-copy deprecation warning with
@@ -55,9 +84,9 @@ or hidden by the tests.
 ## Base tests
 
 ```sh
-uv run --locked --project skills/detailed-segmentation --group dev pytest tests
-uv run --locked --project skills/detailed-segmentation --group dev ruff check skills/detailed-segmentation/scripts tests install.py
-uv run --locked --project skills/detailed-segmentation --group dev ruff format --check skills/detailed-segmentation/scripts tests install.py
+uv run --locked --project skills/sam3-segmentation --group dev pytest tests
+uv run --locked --project skills/sam3-segmentation --group dev ruff check skills/sam3-segmentation/scripts tests install.py
+uv run --locked --project skills/sam3-segmentation --group dev ruff format --check skills/sam3-segmentation/scripts tests install.py
 ```
 
 These use synthetic masks and a deterministic fake inference adapter. They never
@@ -79,7 +108,7 @@ require gated weights, a GPU or provider credentials.
 After authorized setup, with `S` set to the absolute skill folder:
 
 ```sh
-uv run --locked --project "$S/environments/sam3" python "$S/scripts/model_smoke.py" --out /absolute/new-model-check --device cuda:0
+sh "$S/scripts/run" model model_smoke.py --out /absolute/new-model-check --device cuda:0
 ```
 
 Use `--checkpoint` for an existing weight file. The tool generates its own simple
@@ -97,8 +126,8 @@ annotation recipe. Do not commit real photographs or private run outputs.
 ## Optional browser automation
 
 ```sh
-uv run --locked --project "$S" --with playwright playwright install chromium
-uv run --locked --project "$S" --with playwright python "$S/scripts/browser_smoke.py" /path/run/export --out /absolute/new-browser-check
+sh "$S/scripts/run" base --with playwright playwright install chromium
+sh "$S/scripts/run" base --with playwright python "$S/scripts/browser_smoke.py" /path/run/export --out /absolute/new-browser-check
 ```
 
 This starts a loopback-only test server and a dedicated browser/profile. Pass

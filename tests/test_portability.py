@@ -1,26 +1,32 @@
 import copy
 import json
+import os
 import re
+import shutil
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 from core import DEFAULT_CONFIG, validate_config, validate_review
 from segment import load_config
 
 import install
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILL = ROOT / "skills/detailed-segmentation"
+SKILL = ROOT / "skills/sam3-segmentation"
 
 
 def test_installed_skill_is_self_contained(tmp_path):
-    destination = install.install(tmp_path / "installed-skills" / "detailed-segmentation")
+    destination = install.install(tmp_path / "installed-skills" / "sam3-segmentation")
     assert (destination / "SKILL.md").exists()
     assert (destination / "LICENSE").exists()
     assert (destination / "uv.lock").exists()
     assert (destination / "environments/sam3/uv.lock").exists()
+    assert (destination / "scripts/run").exists()
+    assert (destination / "agents/openai.yaml").exists()
     assert not list(destination.rglob(".venv"))
     output = tmp_path / "outside-repository/demo"
     result = subprocess.run(
@@ -37,7 +43,7 @@ def test_installed_skill_is_self_contained(tmp_path):
 
 
 def test_installer_dry_run_does_not_create_directory(tmp_path):
-    destination = tmp_path / "not-created" / "detailed-segmentation"
+    destination = tmp_path / "not-created" / "sam3-segmentation"
     install.install(destination, dry_run=True)
     assert not destination.exists()
 
@@ -58,13 +64,100 @@ def test_all_document_relative_links_resolve():
             assert target.exists(), f"Broken link in {path}: {link}"
 
 
-def test_skill_metadata_and_redistribution_license():
-    frontmatter = (SKILL / "SKILL.md").read_text().split("---", 2)[1]
-    fields = dict(line.split(": ", 1) for line in frontmatter.strip().splitlines())
+def skill_frontmatter():
+    text = (SKILL / "SKILL.md").read_text()
+    assert text.startswith("---\n")
+    # A strict YAML parser, as Pi and the reference validator use: an unquoted
+    # ": " inside the description once made Pi skip the skill silently.
+    return yaml.safe_load(text.split("\n---\n", 1)[0][4:])
+
+
+def test_skill_metadata_follows_agent_skills_spec():
+    fields = skill_frontmatter()
+    allowed = {"name", "description", "license", "compatibility", "metadata", "allowed-tools"}
+    assert set(fields) <= allowed
     assert fields["name"] == SKILL.name
+    assert re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", fields["name"]) and len(fields["name"]) <= 64
     assert 1 <= len(fields["description"]) <= 1024
-    assert fields["license"] == "MIT"
+    assert 1 <= len(fields["compatibility"]) <= 500
+    assert all(isinstance(v, str) for v in fields["metadata"].values())
+    assert len((SKILL / "SKILL.md").read_text().splitlines()) < 500
+
+
+def test_skill_redistribution_license():
+    assert skill_frontmatter()["license"] == "MIT"
     assert (SKILL / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()
+
+
+def test_versions_and_names_agree_everywhere():
+    version = skill_frontmatter()["metadata"]["version"]
+    plugin = json.loads((ROOT / ".claude-plugin/plugin.json").read_text())
+    marketplace = json.loads((ROOT / ".claude-plugin/marketplace.json").read_text())
+    assert re.fullmatch(r"\d+\.\d+\.\d+", version)
+    assert plugin["version"] == version
+    assert plugin["name"] == SKILL.name
+    assert [entry["name"] for entry in marketplace["plugins"]] == [SKILL.name]
+    for project in [SKILL, SKILL / "environments/sam3"]:
+        assert (
+            tomllib.loads((project / "pyproject.toml").read_text())["project"]["version"] == version
+        )
+    assert f"## {version}" in (ROOT / "CHANGELOG.md").read_text()
+    openai = yaml.safe_load((SKILL / "agents/openai.yaml").read_text())
+    assert len(openai["interface"]["short_description"]) <= 64
+
+
+LAUNCHER = SKILL / "scripts/run"
+
+
+def run_launcher(*args, home):
+    return subprocess.run(
+        ["sh", str(LAUNCHER), *args],
+        env={**os.environ, "SAM3_SEGMENTATION_HOME": str(home)},
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_launcher_keeps_environments_outside_the_skill(tmp_path):
+    base = run_launcher("base", "path", home=tmp_path).stdout.strip()
+    model = run_launcher("model", "path", home=tmp_path).stdout.strip()
+    assert Path(base).parent == Path(model).parent == tmp_path / "envs"
+    assert Path(base).name.startswith("base-") and Path(model).name.startswith("model-")
+    assert SKILL not in Path(base).parents
+
+
+def test_launcher_environment_name_follows_the_lock(tmp_path):
+    copy = tmp_path / "skill"
+    shutil.copytree(SKILL, copy, ignore=shutil.ignore_patterns(".venv", "__pycache__"))
+    launcher = copy / "scripts/run"
+    env = {**os.environ, "SAM3_SEGMENTATION_HOME": str(tmp_path / "home")}
+    before = subprocess.run(
+        ["sh", launcher, "base", "path"], env=env, capture_output=True, text=True
+    )
+    with (copy / "uv.lock").open("a") as lock:
+        lock.write("\n")
+    after = subprocess.run(
+        ["sh", launcher, "base", "path"], env=env, capture_output=True, text=True
+    )
+    assert before.stdout != after.stdout
+
+
+def test_launcher_rejects_bad_arguments(tmp_path):
+    assert run_launcher("gpu", "sam.py", home=tmp_path).returncode == 2
+    assert run_launcher("base", home=tmp_path).returncode == 2
+    missing = run_launcher("base", "no-such-script.py", home=tmp_path)
+    assert missing.returncode == 2 and "no such script" in missing.stderr
+
+
+@pytest.mark.skipif(shutil.which("uv") is None, reason="needs uv")
+def test_launcher_runs_base_tools_without_writing_into_the_skill(tmp_path):
+    before = sorted(p.relative_to(SKILL) for p in SKILL.rglob("*") if ".venv" not in p.parts)
+    result = run_launcher("base", "segment.py", "doctor", home=tmp_path)
+    assert result.returncode == 0, result.stderr
+    assert '"torch_available": false' in result.stdout
+    after = sorted(p.relative_to(SKILL) for p in SKILL.rglob("*") if ".venv" not in p.parts)
+    assert before == after
+    assert list((tmp_path / "envs").glob("base-*"))
 
 
 def test_no_private_machine_paths_or_credentials_in_sources():
