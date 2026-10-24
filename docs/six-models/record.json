@@ -1,0 +1,54 @@
+{
+ "dimensions": [
+  2400,
+  1597
+ ],
+ "left_half": "Model alone, no tools: polygons as returned (corn-noskill-models/viewer/polygons.json)",
+ "right_half": "Same model with the detailed-segmentation skill: exported kernel masks",
+ "display_only_center_crop": [
+  0,
+  10,
+  480,
+  480
+ ],
+ "note": "Each half shows the matching half of the same photo crop; counts are each run's full set.",
+ "panels": [
+  {
+   "model": "Luna",
+   "version": "6",
+   "no_tools_polygons": 0,
+   "skill_kernel_masks": 1350
+  },
+  {
+   "model": "Sol",
+   "version": "6.1",
+   "no_tools_polygons": 900,
+   "skill_kernel_masks": 1315
+  },
+  {
+   "model": "Astra",
+   "version": "6",
+   "no_tools_polygons": 737,
+   "skill_kernel_masks": 1319
+  },
+  {
+   "model": "Haiku",
+   "version": "5.5",
+   "no_tools_polygons": 12,
+   "skill_kernel_masks": 1244
+  },
+  {
+   "model": "Sonnet",
+   "version": "5",
+   "no_tools_polygons": 297,
+   "skill_kernel_masks": 1321
+  },
+  {
+   "model": "Opus",
+   "version": "5.5",
+   "no_tools_polygons": 1084,
+   "skill_kernel_masks": 1319
+  }
+ ],
+ "photo": "ImageNet validation image ILSVRC2012_val_00000408 (480 x 500); copyright belongs to its original photographer; not covered by this repository licence"
+}

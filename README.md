@@ -8,12 +8,14 @@
 **An agent skill that outlines objects in photos with Meta's SAM 3, run on your
 own NVIDIA GPU, and keeps everything it produces checkable.**
 
-![A CC0 photo of corn beside the skill's 1,397 kernel outlines, one colour each](docs/hero/hero.jpg)
+![Six agents on the same corn photo: kernel outlines drawn without tools (left half of each panel) and with this skill (right half)](docs/six-models/panel.jpg)
 
-*Unreviewed output of the full workflow's model steps on a
-[CC0 photo](https://commons.wikimedia.org/wiki/File:Corn_ready_for_removing_kernels_from_cob.jpg):
-1,397 kernel and 11 ear proposals, about 3 minutes on one RTX 3090.
-[How it was made](docs/hero/make.sh).*
+*Same six agents on the same corn photo, without tools (left half) and with this
+skill (right half). Counts are each run's full set; nobody has checked these
+outlines ([details](#does-it-work), [data](docs/six-models/record.json)). Photo:
+ImageNet validation image ILSVRC2012_val_00000408; copyright belongs to its
+original photographer and it is not covered by this repository's licence. It
+will be removed on request.*
 
 Ask your coding agent (Claude Code, Codex, Cursor, Pi, OpenCode and about 75
 others) to "outline every kernel", "cut out the dog" or "count the seeds", and
@@ -104,7 +106,14 @@ made with SAM 3, so this measures agreement between agents, **not accuracy**: no
 person has checked these outlines. Luna skipped the review; Haiku removed too
 much, including real kernels. The same six models with no tools, asked to trace
 the kernels by looking, returned between 0 and 1,084 shapes that did not follow
-the kernels. That photo is not cleared for sharing, so it is not included.
+the kernels (the picture at the top).
+
+**On a free photo you can reuse.** The same steps with no agent review, on a
+[CC0 corn photo](https://commons.wikimedia.org/wiki/File:Corn_ready_for_removing_kernels_from_cob.jpg):
+1,397 kernel and 11 ear proposals in about 3 minutes on one RTX 3090.
+[Rebuild it yourself](docs/hero/make.sh).
+
+![A CC0 photo of corn beside the skill's 1,397 kernel outlines, one colour each](docs/hero/hero.jpg)
 
 **Beyond corn.** Trials on a dog, jars, insects, mushrooms and cattle produced
 useful outlines, but also background mistakes and parts counted as whole

@@ -10,7 +10,7 @@ The skill folder must remain self-contained when copied out of this repository.
 - GPU calls must be explicit and use the `model` environment (`skills/sam3-segmentation/environments/sam3`).
 - Ordinary tests must not download weights, require credentials, contact providers or change accepted annotations.
 - Preserve raw candidates before gates, native coordinates, pixel-tight boxes, and proposal-only status.
-- No photographs, weights, credentials, home-directory paths or private run outputs in commits. Eval fixtures must be public domain or CC0 and listed in `evals/fixtures/CREDITS.md`.
+- No photographs, weights, credentials, home-directory paths or private run outputs in commits. Eval fixtures must be public domain or CC0 and listed in `evals/fixtures/CREDITS.md`. The one deliberate exception is `docs/six-models/panel.jpg` (an ImageNet photo, credited in the README and to be removed on request); do not add others.
 - Demo fixtures are synthetic and must never be described as model-quality evidence.
 - Changing code/runtime identity invalidates inference caches; do not remove that safeguard.
 - Keep model terms separate from this repository's MIT licence.
