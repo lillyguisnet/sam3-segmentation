@@ -1,5 +1,8 @@
 # sam3-segmentation
 
+[![Test](https://github.com/lillyguisnet/sam3-segmentation/actions/workflows/test.yml/badge.svg)](https://github.com/lillyguisnet/sam3-segmentation/actions/workflows/test.yml)
+[![skills.sh](https://skills.sh/b/lillyguisnet/sam3-segmentation)](https://skills.sh/lillyguisnet/sam3-segmentation)
+
 **An agent skill that outlines objects in photos with Meta's SAM 3, run on your
 own NVIDIA GPU, and keeps everything it produces checkable.**
 
