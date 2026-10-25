@@ -46,6 +46,18 @@ if [ "$1" = path ]; then
     exit 0
 fi
 
+# Resolve a *.py shortcut before the tooling checks, so a missing script is
+# reported as itself (exit 2) instead of as a missing uv (exit 127).
+case $1 in
+    /*.py) script=$1 ;;
+    *.py) script=$skill/scripts/$1 ;;
+    *) script= ;;
+esac
+if [ -n "$script" ] && [ ! -f "$script" ]; then
+    echo "error: no such script: $script" >&2
+    exit 2
+fi
+
 if ! command -v uv >/dev/null 2>&1; then
     echo "error: uv is not installed. Install it from" >&2
     echo "https://docs.astral.sh/uv/getting-started/installation/ (see references/setup.md)." >&2
@@ -57,14 +69,8 @@ if [ "$1" = sync ]; then
     exec uv sync --locked --no-dev --project "$project" "$@"
 fi
 
-case $1 in
-    /*.py) script=$1 ;;
-    *.py) script=$skill/scripts/$1 ;;
-    *) exec uv run --locked --no-dev --project "$project" "$@" ;;
-esac
-shift
-if [ ! -f "$script" ]; then
-    echo "error: no such script: $script" >&2
-    exit 2
+if [ -z "$script" ]; then
+    exec uv run --locked --no-dev --project "$project" "$@"
 fi
+shift
 exec uv run --locked --no-dev --project "$project" python "$script" "$@"
