@@ -272,7 +272,7 @@ uncertain, record a decision with a reason:
 sh "$S/scripts/run" base segment.py decide "$R/run" /path/decisions.json
 ```
 
-The file format is in [review protocol](references/review.md#recording-decisions).
+The file format is described in the [review protocol](references/review.md#recording-decisions).
 **Never edit `selected.json`, `refined.json` or status files by hand or with your
 own script**: that breaks the record of what the tools produced. Decisions are
 kept in `decisions.json`, applied when refining, reviewing and exporting, bound

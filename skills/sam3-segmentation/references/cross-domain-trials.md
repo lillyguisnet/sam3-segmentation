@@ -132,7 +132,7 @@ First inspect object sizes and change the profile for your native pixels. Then
 follow the skill's plan → infer → audit → select → semantic/instance inspection →
 refine → re-review → export workflow. Do not use these first-draft proposal counts
 as a target. The scalar validation record is in
-[the scalar validation record](cross-domain-trials.json).
+[cross-domain-trials.json](cross-domain-trials.json).
 
 ## Evidence and limits
 
